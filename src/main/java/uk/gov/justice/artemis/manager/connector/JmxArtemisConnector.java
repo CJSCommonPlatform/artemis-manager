@@ -28,7 +28,7 @@ public class JmxArtemisConnector implements ArtemisConnector {
     public List<MessageData> messagesOf(final String host, final String port, final String brokerName, final String destinationName) throws Exception {
         final CompositeData[] browseResult = queueControlOf(host, port, brokerName, destinationName).browse();
         return stream(browseResult)
-                .map(cd -> new MessageData(String.valueOf(cd.get(JMS_MESSAGE_ID)), String.valueOf(cd.get(ORIGINAL_DESTINATION)), String.valueOf(cd.get(TEXT))))
+                .map(cd -> new MessageData(String.valueOf(cd.get(JMS_MESSAGE_ID)).replaceFirst("ID:", ""), String.valueOf(cd.get(ORIGINAL_DESTINATION)), String.valueOf(cd.get(TEXT))))
                 .collect(toList());
 
     }

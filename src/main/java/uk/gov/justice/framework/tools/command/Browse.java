@@ -1,9 +1,6 @@
 package uk.gov.justice.framework.tools.command;
 
 
-import static java.util.Arrays.sort;
-import static java.util.Arrays.stream;
-
 import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
 import uk.gov.justice.artemis.manager.connector.JmxArtemisConnector;
 import uk.gov.justice.artemis.manager.connector.MessageData;
@@ -26,7 +23,7 @@ public class Browse implements ShellCommand {
     @Parameter(names = "-port", description = "jmx port", required = true)
     String port;
 
-    @Parameter(names = "-brokername", description = "broker name as specified in broker.xml", required = true)
+    @Parameter(names = "-brokerName", description = "broker name as specified in broker.xml", required = true)
     String brokerName;
 
 

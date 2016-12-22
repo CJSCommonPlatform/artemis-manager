@@ -11,12 +11,15 @@ import static uk.gov.justice.artemis.manager.util.JmsTestUtil.openJmsConnection;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putInQueue;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.jms.JMSException;
 
+import com.jayway.jsonpath.JsonPath;
 import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 //to run this test from IDE start artemis first by executing ./target/server0/bin/artemis run
@@ -42,7 +45,7 @@ public class ArtemisManagerIT {
         putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\",\"id\":\"c97c5b7b-abc3-49d4-96a9-bcd83aa4ea13\"}}", "jms.queue.hocuspocus");
 
 
-        final String output = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokername 0.0.0.0");
+        final String output = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
 
         assertThat(output, hasJsonPath("$..msgId", hasSize(2)));
         assertThat(output, hasJsonPath("$[0].msgId"));
@@ -59,21 +62,45 @@ public class ArtemisManagerIT {
 
     @Test
     public void shouldThrowExceptionIfHostMissingWhenBrowsing() throws IOException {
-        assertThat(errorOutputOf("java -jar target/artemis-manager.jar browse  -port 3000 -brokername 0.0.0.0"),
+        assertThat(errorOutputOf("java -jar target/artemis-manager.jar browse  -port 3000 -brokerName 0.0.0.0"),
                 containsString("The following option is required: -host"));
     }
 
 
     @Test
     public void shouldThrowExceptionIfPortMissingWhenBrowsing() throws IOException {
-        assertThat(errorOutputOf("java -jar target/artemis-manager.jar browse -host localhost -brokername 0.0.0.0"),
+        assertThat(errorOutputOf("java -jar target/artemis-manager.jar browse -host localhost -brokerName 0.0.0.0"),
                 containsString("The following option is required: -port"));
     }
 
     @Test
     public void shouldThrowExceptionIfBrokerNameMissingWhenBrowsing() throws IOException {
         assertThat(errorOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000"),
-                containsString("The following option is required: -brokername"));
+                containsString("The following option is required: -brokerName"));
+    }
+
+
+    @Test
+    @Ignore
+    public void shouldRemoveMessageById() throws Exception {
+
+        cleanQueue(DLQ);
+
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\"}}", "jms.queue.abracadabra");
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\"}}", "jms.queue.hocuspocus");
+
+        final String messageData = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+
+        List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
+        assertThat(msgIds, hasSize(2));
+
+        final String output = standardOutputOf("java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0 -msgId=" + msgIds.get(0));
+
+        final String messageDataAfterRemoval = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+
+        assertThat(messageDataAfterRemoval, hasJsonPath("$..msgId", hasSize(1)));
+        assertThat(messageDataAfterRemoval, hasJsonPath("$[0].msgId", equalTo( msgIds.get(1))));
+
     }
 
     private String standardOutputOf(final String cmd) throws IOException {
