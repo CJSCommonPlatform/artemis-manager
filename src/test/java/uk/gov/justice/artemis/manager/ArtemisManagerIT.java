@@ -3,7 +3,9 @@ package uk.gov.justice.artemis.manager;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.isEmptyString;
 import static org.junit.Assert.assertThat;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.cleanQueue;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.closeJmsConnection;
@@ -19,7 +21,6 @@ import com.jayway.jsonpath.JsonPath;
 import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 //to run this test from IDE start artemis first by executing ./target/server0/bin/artemis run
@@ -45,18 +46,21 @@ public class ArtemisManagerIT {
         putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\",\"id\":\"c97c5b7b-abc3-49d4-96a9-bcd83aa4ea13\"}}", "jms.queue.hocuspocus");
 
 
-        final String output = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+        final Output output = execute("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+        assertThat(output.errorOutput, isEmptyString());
 
-        assertThat(output, hasJsonPath("$..msgId", hasSize(2)));
-        assertThat(output, hasJsonPath("$[0].msgId"));
-        assertThat(output, hasJsonPath("$[0].originalDestination", equalTo("jms.queue.abracadabra")));
-        assertThat(output, hasJsonPath("$[0].msgContent._metadata.name", equalTo("some.name")));
-        assertThat(output, hasJsonPath("$[0].msgContent._metadata.id", equalTo("c97c5b7b-abc3-49d4-96a9-bcd83aa4ea12")));
+        final String standardOutput = output.standardOutput();
 
-        assertThat(output, hasJsonPath("$[1].msgId"));
-        assertThat(output, hasJsonPath("$[1].originalDestination", equalTo("jms.queue.hocuspocus")));
-        assertThat(output, hasJsonPath("$[1].msgContent._metadata.name", equalTo("some.other.name")));
-        assertThat(output, hasJsonPath("$[1].msgContent._metadata.id", equalTo("c97c5b7b-abc3-49d4-96a9-bcd83aa4ea13")));
+        assertThat(standardOutput, hasJsonPath("$..msgId", hasSize(2)));
+        assertThat(standardOutput, hasJsonPath("$[0].msgId"));
+        assertThat(standardOutput, hasJsonPath("$[0].originalDestination", equalTo("jms.queue.abracadabra")));
+        assertThat(standardOutput, hasJsonPath("$[0].msgContent._metadata.name", equalTo("some.name")));
+        assertThat(standardOutput, hasJsonPath("$[0].msgContent._metadata.id", equalTo("c97c5b7b-abc3-49d4-96a9-bcd83aa4ea12")));
+
+        assertThat(standardOutput, hasJsonPath("$[1].msgId"));
+        assertThat(standardOutput, hasJsonPath("$[1].originalDestination", equalTo("jms.queue.hocuspocus")));
+        assertThat(standardOutput, hasJsonPath("$[1].msgContent._metadata.name", equalTo("some.other.name")));
+        assertThat(standardOutput, hasJsonPath("$[1].msgContent._metadata.id", equalTo("c97c5b7b-abc3-49d4-96a9-bcd83aa4ea13")));
 
     }
 
@@ -81,7 +85,6 @@ public class ArtemisManagerIT {
 
 
     @Test
-    @Ignore
     public void shouldRemoveMessageById() throws Exception {
 
         cleanQueue(DLQ);
@@ -94,28 +97,73 @@ public class ArtemisManagerIT {
         List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
         assertThat(msgIds, hasSize(2));
 
-        final String output = standardOutputOf("java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0 -msgId=" + msgIds.get(0));
+        final String msgIdToRemove = msgIds.get(0);
+        execute("java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0 -msgId " + msgIdToRemove);
 
         final String messageDataAfterRemoval = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
 
         assertThat(messageDataAfterRemoval, hasJsonPath("$..msgId", hasSize(1)));
-        assertThat(messageDataAfterRemoval, hasJsonPath("$[0].msgId", equalTo( msgIds.get(1))));
+        assertThat(messageDataAfterRemoval, hasJsonPath("$[0].msgId", equalTo(msgIds.get(1))));
 
+    }
+
+    @Test
+    public void shouldReturnIdOfRemovedMessage() throws Exception {
+        cleanQueue(DLQ);
+
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\"}}", "jms.queue.abracadabra");
+
+        final String messageData = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+
+
+        final String msgIdToRemove = JsonPath.read(messageData, "$[0].msgId");
+        final Output output = execute("java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0 -msgId " + msgIdToRemove);
+
+        assertThat(output.errorOutput(), is(""));
+        assertThat(output.standardOutput(), containsString("Removed message " + msgIdToRemove));
+
+    }
+
+    @Test
+    public void shouldReturnInfoIfMessageNotound() throws IOException {
+
+        final String msgIdToRemove = "1234";
+        final Output output = execute("java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0 -msgId " + msgIdToRemove);
+
+        assertThat(output.errorOutput(), is(""));
+        assertThat(output.standardOutput(), containsString("Could NOT remove message " + msgIdToRemove));
     }
 
     private String standardOutputOf(final String cmd) throws IOException {
-        Process process = execute(cmd);
-        return IOUtils.toString(process.getInputStream());
+        return execute(cmd).standardOutput();
     }
 
     private String errorOutputOf(final String cmd) throws IOException {
-        Process process = execute(cmd);
-        return IOUtils.toString(process.getErrorStream());
+        return execute(cmd).errorOutput;
     }
 
 
-    private Process execute(final String cmd) throws IOException {
+    private Output execute(final String cmd) throws IOException {
         Runtime runtime = Runtime.getRuntime();
-        return runtime.exec(cmd);
+        final Process process = runtime.exec(cmd);
+        return new Output(IOUtils.toString(process.getInputStream()), IOUtils.toString(process.getErrorStream()));
+    }
+
+    private static class Output {
+        private String standardOutput;
+        private String errorOutput;
+
+        public Output(final String standardOutput, final String errorOutput) {
+            this.standardOutput = standardOutput;
+            this.errorOutput = errorOutput;
+        }
+
+        public String standardOutput() {
+            return standardOutput;
+        }
+
+        public String errorOutput() {
+            return errorOutput;
+        }
     }
 }

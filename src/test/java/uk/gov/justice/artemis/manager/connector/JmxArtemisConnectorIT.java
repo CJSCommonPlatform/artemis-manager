@@ -34,7 +34,7 @@ import org.junit.Test;
     }
 
     @Test
-    public void shouldReturnMessagesFromAQueue() throws Exception {
+    public void shouldReturnMessagesFromQueue() throws Exception {
         final String queue = "DLQ";
 
         cleanQueue(queue);
@@ -51,6 +51,26 @@ import org.junit.Test;
         assertThat(messageData.get(1).getMsgId(), not(nullValue()));
         assertThat(messageData.get(1).getOriginalDestination(), is("origQueueO2"));
         assertThat(messageData.get(1).getMsgContent().getString("key1"), is("valueBB"));
+    }
+
+    @Test
+    public void shouldRemoveMessageFromQueue() throws Exception {
+        final String queue = "DLQ";
+
+        cleanQueue(queue);
+
+        putInQueue(queue, "{\"key1\":\"value123\"}", "origQueueO1");
+        putInQueue(queue, "{\"key1\":\"valueBB\"}", "origQueueO2");
+
+        final List<MessageData> messageData = jmxArtemisConnector.messagesOf("localhost", "3000", "0.0.0.0", queue);
+        assertThat(messageData, hasSize(2));
+
+        jmxArtemisConnector.removeMessage("localhost", "3000", "0.0.0.0", queue, messageData.get(1).getMsgId());
+
+        final List<MessageData> messageDataAfterRemoval = jmxArtemisConnector.messagesOf("localhost", "3000", "0.0.0.0", queue);
+        assertThat(messageDataAfterRemoval, hasSize(1));
+
+        assertThat(messageDataAfterRemoval.get(0).getMsgId(), is(messageData.get(0).getMsgId()));
 
 
     }

@@ -13,18 +13,7 @@ import javax.json.JsonArrayBuilder;
 
 import com.beust.jcommander.Parameter;
 
-public class Browse implements ShellCommand {
-
-    ArtemisConnector artemisConnector = new JmxArtemisConnector();
-
-    @Parameter(names = "-host", description = "ip address of artemis node", required = true)
-    String host;
-
-    @Parameter(names = "-port", description = "jmx port", required = true)
-    String port;
-
-    @Parameter(names = "-brokerName", description = "broker name as specified in broker.xml", required = true)
-    String brokerName;
+public class Browse extends AbstractArtemisCommand implements ShellCommand {
 
 
     @Override
