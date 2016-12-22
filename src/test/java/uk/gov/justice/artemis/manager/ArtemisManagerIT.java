@@ -108,30 +108,86 @@ public class ArtemisManagerIT {
     }
 
     @Test
-    public void shouldReturnIdOfRemovedMessage() throws Exception {
-        cleanQueue(DLQ);
+    public void shouldReturnInfoIfMessageNotound() throws IOException {
 
-        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\"}}", "jms.queue.abracadabra");
+        final Output output = execute("java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0 -msgId 1234");
 
-        final String messageData = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
-
-
-        final String msgIdToRemove = JsonPath.read(messageData, "$[0].msgId");
-        final Output output = execute("java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0 -msgId " + msgIdToRemove);
-
-        assertThat(output.errorOutput(), is(""));
-        assertThat(output.standardOutput(), containsString("Removed message " + msgIdToRemove));
-
+        assertThat(output.errorOutput(), is("No message found for JMSMessageID: ID:1234\n"));
     }
 
     @Test
-    public void shouldReturnInfoIfMessageNotound() throws IOException {
+    public void shouldRemoveMultipleMessagesReadingIdsFromSystemInput() throws Exception {
+        if (notWindows()) {
+            cleanQueue(DLQ);
 
-        final String msgIdToRemove = "1234";
-        final Output output = execute("java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0 -msgId " + msgIdToRemove);
+            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\"}}", "jms.queue.abracadabra");
+            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\"}}", "jms.queue.hocuspocus");
+            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name2\"}}", "jms.queue.abracadabra2");
 
-        assertThat(output.errorOutput(), is(""));
-        assertThat(output.standardOutput(), containsString("Could NOT remove message " + msgIdToRemove));
+
+            final String messageData = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+
+            List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
+
+            final String shellCommand = "echo " + msgIds.get(0) + " " + msgIds.get(2) + " | java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0";
+            final Output output = execute(new String[]{"/bin/sh", "-c", shellCommand});
+            assertThat(output.errorOutput(), is(""));
+
+            final String messageDataAfterRemoval = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+
+            assertThat(messageDataAfterRemoval, hasJsonPath("$..msgId", hasSize(1)));
+            assertThat(messageDataAfterRemoval, hasJsonPath("$[0].msgId", equalTo(msgIds.get(1))));
+
+        }
+    }
+
+    @Test
+    public void shouldIgnoreUnknownMessageIds() throws Exception {
+        if (notWindows()) {
+            cleanQueue(DLQ);
+
+            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\"}}", "jms.queue.abracadabra");
+            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\"}}", "jms.queue.hocuspocus");
+
+
+            final String messageData = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+
+            List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
+
+            final String shellCommand = "echo unknown_id123 " + msgIds.get(0) + " | java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0";
+            execute(new String[]{"/bin/sh", "-c", shellCommand});
+
+            final String messageDataAfterRemoval = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+
+            assertThat(messageDataAfterRemoval, hasJsonPath("$..msgId", hasSize(1)));
+            assertThat(messageDataAfterRemoval, hasJsonPath("$[0].msgId", equalTo(msgIds.get(1))));
+        }
+    }
+
+    @Test
+    public void shouldOutputNumberOfRemovedMessages() throws JMSException, IOException {
+
+        if (notWindows()) {
+            cleanQueue(DLQ);
+
+            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\"}}", "jms.queue.abracadabra");
+            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\"}}", "jms.queue.hocuspocus");
+
+
+            final String messageData = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+
+            List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
+
+            final String shellCommand = "echo unknown_id123 " + msgIds.get(0) + " " + msgIds.get(1) + " | java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0";
+            final Output output = execute(new String[]{"/bin/sh", "-c", shellCommand});
+
+            assertThat(output.standardOutput(), is("Removed 2 messages\n"));
+
+        }
+    }
+
+    private boolean notWindows() {
+        return !System.getProperty("os.name").startsWith("Windows");
     }
 
     private String standardOutputOf(final String cmd) throws IOException {
@@ -139,9 +195,15 @@ public class ArtemisManagerIT {
     }
 
     private String errorOutputOf(final String cmd) throws IOException {
-        return execute(cmd).errorOutput;
+        return execute(cmd).errorOutput();
     }
 
+
+    private Output execute(final String[] cmd) throws IOException {
+        Runtime runtime = Runtime.getRuntime();
+        final Process process = runtime.exec(cmd);
+        return new Output(IOUtils.toString(process.getInputStream()), IOUtils.toString(process.getErrorStream()));
+    }
 
     private Output execute(final String cmd) throws IOException {
         Runtime runtime = Runtime.getRuntime();

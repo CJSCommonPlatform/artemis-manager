@@ -2,19 +2,27 @@ package uk.gov.justice.framework.tools.command;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.notNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.Iterator;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -22,21 +30,26 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RemoveTest {
+    public static final byte[] NOT_USED_BYTES = "i123".getBytes();
     private PrintStream originalOut;
+    private PrintStream originalErr;
 
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+
 
     @Mock
     ArtemisConnector artemisConnector;
 
+    @Captor
+    ArgumentCaptor<Iterator<String>> msgIdsIteratorCaptor;
     @InjectMocks
     Remove removeCommand;
 
     @Before
     public void setUpStreams() {
-
         originalOut = System.out;
         System.setOut(new PrintStream(outContent));
+
     }
 
     @After
@@ -46,7 +59,7 @@ public class RemoveTest {
     }
 
     @Test
-    public void shouldInvokeConnector() throws Exception {
+    public void shouldInvokeConnectorWithSingleMessageId() throws Exception {
         removeCommand.brokerName = "brokerabc";
         removeCommand.host = "some.host";
         removeCommand.port = "1212";
@@ -54,47 +67,44 @@ public class RemoveTest {
 
         removeCommand.run(null);
 
-        verify(artemisConnector).removeMessage("some.host", "1212", "brokerabc", "DLQ", "123456");
+        verify(artemisConnector).remove(eq("some.host"), eq("1212"), eq("brokerabc"), eq("DLQ"), msgIdsIteratorCaptor.capture());
+        assertThat(msgIdsIteratorCaptor.getValue().next(), is("123456"));
 
     }
 
     @Test
-    public void shouldReturnIdOfRemovedMessage() throws Exception {
-        removeCommand.brokerName = "brokerdef";
-        removeCommand.host = "some.host.abc";
-        removeCommand.port = "111";
-        removeCommand.msgId = "22555666";
+    public void shouldInvokeConnectorWhenReceivingMultipleMessageIdsOnInput() throws Exception {
+        removeCommand.brokerName = "brokerabc";
+        removeCommand.host = "some.host";
+        removeCommand.port = "1212";
 
-        when(artemisConnector.removeMessage("some.host.abc", "111", "brokerdef", "DLQ", "22555666")).thenReturn(true);
+        final InputStream sysIn = System.in;
+        ByteArrayInputStream in = new ByteArrayInputStream("id1 id2 id3".getBytes());
+        System.setIn(in);
+
         removeCommand.run(null);
-        assertThat(outContent.toString(), is("Removed message 22555666\n"));
+        System.setIn(sysIn);
+        verify(artemisConnector).remove(eq("some.host"), eq("1212"), eq("brokerabc"), eq("DLQ"), msgIdsIteratorCaptor.capture());
+        final Iterator<String> msgIdsIteratorCaptor = this.msgIdsIteratorCaptor.getValue();
+        assertThat(msgIdsIteratorCaptor.next(), is("id1"));
+        assertThat(msgIdsIteratorCaptor.next(), is("id2"));
+        assertThat(msgIdsIteratorCaptor.next(), is("id3"));
 
     }
 
     @Test
-    public void shouldReturnIdOfNOTRemovedMessage() throws Exception {
-        removeCommand.brokerName = "brokerdef";
-        removeCommand.host = "some.host.abc";
-        removeCommand.port = "111";
-        removeCommand.msgId = "22555666";
+    public void shouldOutputNumnerOfRemovedMessages() throws Exception {
 
-        when(artemisConnector.removeMessage("some.host.abc", "111", "brokerdef", "DLQ", "22555666")).thenReturn(false);
+        when(artemisConnector.remove(anyString(), anyString(), anyString(), anyString(), any(Iterator.class))).thenReturn(3l);
+
+        final InputStream sysIn = System.in;
+        ByteArrayInputStream in = new ByteArrayInputStream(NOT_USED_BYTES);
+        System.setIn(in);
+
         removeCommand.run(null);
-        assertThat(outContent.toString(), is("Could NOT remove message 22555666\n"));
+        System.setIn(sysIn);
 
-    }
-
-    @Test
-    public void shouldReturnIdOfAMessageIfExceptionThrown() throws Exception {
-        removeCommand.brokerName = "brok123";
-        removeCommand.host = "hosta";
-        removeCommand.port = "333";
-        removeCommand.msgId = "4444444";
-
-        when(artemisConnector.removeMessage("hosta", "333", "brok123", "DLQ", "4444444")).thenThrow(new IllegalArgumentException());
-        removeCommand.run(null);
-        assertThat(outContent.toString(), is("Could NOT remove message 4444444\n"));
-
+        assertThat(outContent.toString(), is("Removed 3 messages\n"));
 
     }
 

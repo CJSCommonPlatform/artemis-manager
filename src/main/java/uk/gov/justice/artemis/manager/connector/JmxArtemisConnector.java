@@ -2,15 +2,13 @@ package uk.gov.justice.artemis.manager.connector;
 
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
-import static java.util.Collections.EMPTY_MAP;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
 import static javax.management.MBeanServerInvocationHandler.newProxyInstance;
 import static javax.management.remote.JMXConnectorFactory.connect;
 import static org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration.getDefaultJmxDomain;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.management.ObjectName;
@@ -37,8 +35,18 @@ public class JmxArtemisConnector implements ArtemisConnector {
     }
 
     @Override
-    public boolean removeMessage(final String host, final String port, final String brokerName, final String destinationName, final String msgId) throws Exception {
-        return queueControlOf(host, port, brokerName, destinationName).removeMessage(format("ID:%s", msgId));
+    public long remove(final String host, final String port, final String brokerName, final String destinationName, final Iterator<String> msgIds) throws Exception {
+        final JMSQueueControl queueControl = queueControlOf(host, port, brokerName, destinationName);
+        long removedMessages = 0;
+        while (msgIds.hasNext()) {
+            try {
+                queueControl.removeMessage(format("ID:%s", msgIds.next()));
+                removedMessages++;
+            } catch (IllegalArgumentException e) {
+                System.err.println(e.getMessage());
+            }
+        }
+        return removedMessages;
     }
 
     private JMSQueueControl queueControlOf(final String host, final String port, final String brokerName, final String destinationName) throws Exception {
