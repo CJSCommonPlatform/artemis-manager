@@ -20,6 +20,7 @@ import org.apache.activemq.artemis.api.core.management.ObjectNameBuilder;
 import org.apache.activemq.artemis.api.jms.management.JMSQueueControl;
 
 public class JmxArtemisConnector implements ArtemisConnector {
+
     private static final String JMX_URL = "service:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi";
     private static final String JMS_MESSAGE_ID = "JMSMessageID";
     private static final String ORIGINAL_DESTINATION = "OriginalDestination";
@@ -47,6 +48,25 @@ public class JmxArtemisConnector implements ArtemisConnector {
             }
         }
         return removedMessages;
+    }
+
+    @Override
+    public long reprocess(final String host, final String port, final String brokerName, final String destinationName, final Iterator<String> msgIds) throws Exception {
+        final JMSQueueControl queueControl = queueControlOf(host, port, brokerName, destinationName);
+        long reprocessedMessages = 0;
+        while (msgIds.hasNext()) {
+            try {
+                final String nextId = msgIds.next();
+                if (queueControl.retryMessage(format("ID:%s", nextId))) {
+                    reprocessedMessages++;
+                } else {
+                    System.err.println(format("Skipped retrying of message id %s as it does not exist", nextId));
+                }
+            } catch (IllegalArgumentException e) {
+                System.err.println(e.getMessage());
+            }
+        }
+        return reprocessedMessages;
     }
 
     private JMSQueueControl queueControlOf(final String host, final String port, final String brokerName, final String destinationName) throws Exception {
