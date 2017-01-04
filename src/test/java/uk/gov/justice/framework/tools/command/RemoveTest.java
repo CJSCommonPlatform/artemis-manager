@@ -32,7 +32,6 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class RemoveTest {
     public static final byte[] NOT_USED_BYTES = "i123".getBytes();
     private PrintStream originalOut;
-    private PrintStream originalErr;
 
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
 
@@ -42,6 +41,7 @@ public class RemoveTest {
 
     @Captor
     ArgumentCaptor<Iterator<String>> msgIdsIteratorCaptor;
+
     @InjectMocks
     Remove removeCommand;
 
@@ -49,13 +49,11 @@ public class RemoveTest {
     public void setUpStreams() {
         originalOut = System.out;
         System.setOut(new PrintStream(outContent));
-
     }
 
     @After
     public void cleanUpStreams() {
         System.setOut(originalOut);
-
     }
 
     @Test
@@ -104,7 +102,7 @@ public class RemoveTest {
         removeCommand.run(null);
         System.setIn(sysIn);
 
-        assertThat(outContent.toString(), is("Removed 3 messages\n"));
+        assertThat(outContent.toString(), is("{\"Command\":\"Remove message\",\"Occurrences\":3}\n"));
 
     }
 

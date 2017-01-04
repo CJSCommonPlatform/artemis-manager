@@ -101,7 +101,7 @@ public class ReprocessTest {
         reprocessCommand.run(null);
         System.setIn(sysIn);
 
-        assertThat(outContent.toString(), is("Reprocessed 3 messages\n"));
+        assertThat(outContent.toString(), is("{\"Command\":\"Reprocess message\",\"Occurrences\":3}\n"));
     }
 
 

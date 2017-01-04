@@ -8,6 +8,9 @@ import static javax.management.MBeanServerInvocationHandler.newProxyInstance;
 import static javax.management.remote.JMXConnectorFactory.connect;
 import static org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration.getDefaultJmxDomain;
 
+import uk.gov.justice.output.ConsolePrinter;
+import uk.gov.justice.output.OutputPrinter;
+
 import java.util.Iterator;
 import java.util.List;
 
@@ -26,6 +29,8 @@ public class JmxArtemisConnector implements ArtemisConnector {
     private static final String ORIGINAL_DESTINATION = "OriginalDestination";
     private static final String TEXT = "Text";
 
+    final OutputPrinter outputPrinter = new ConsolePrinter();
+
     @Override
     public List<MessageData> messagesOf(final String host, final String port, final String brokerName, final String destinationName) throws Exception {
         final CompositeData[] browseResult = queueControlOf(host, port, brokerName, destinationName).browse();
@@ -43,8 +48,8 @@ public class JmxArtemisConnector implements ArtemisConnector {
             try {
                 queueControl.removeMessage(format("ID:%s", msgIds.next()));
                 removedMessages++;
-            } catch (IllegalArgumentException e) {
-                System.err.println(e.getMessage());
+            } catch (final IllegalArgumentException exception) {
+                outputPrinter.writeException(exception);
             }
         }
         return removedMessages;
@@ -60,10 +65,10 @@ public class JmxArtemisConnector implements ArtemisConnector {
                 if (queueControl.retryMessage(format("ID:%s", nextId))) {
                     reprocessedMessages++;
                 } else {
-                    System.err.println(format("Skipped retrying of message id %s as it does not exist", nextId));
+                    outputPrinter.writeException(new RuntimeException(format("Skipped retrying of message id %s as it does not exist", nextId)));
                 }
-            } catch (IllegalArgumentException e) {
-                System.err.println(e.getMessage());
+            } catch (final IllegalArgumentException exception) {
+                outputPrinter.writeException(exception);
             }
         }
         return reprocessedMessages;

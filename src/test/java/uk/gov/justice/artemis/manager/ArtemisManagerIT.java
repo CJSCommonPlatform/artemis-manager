@@ -170,7 +170,7 @@ public class ArtemisManagerIT {
             final String shellCommand = "echo unknown_id123 " + msgIds.get(0) + " " + msgIds.get(1) + " | " + COMMAND_LINE_REMOVE;
             final Output output = execute(new String[]{"/bin/sh", "-c", shellCommand});
 
-            assertThat(output.standardOutput(), is("Removed 2 messages\n"));
+            assertThat(output.standardOutput(), is("{\"Command\":\"Remove message\",\"Occurrences\":2}\n"));
         }
     }
 
@@ -190,7 +190,7 @@ public class ArtemisManagerIT {
             final String shellCommand = "echo unknown_id123 " + msgIds.get(0) + " " + msgIds.get(1) + " | " + COMMAND_LINE_REPROCESS;
             final Output output = execute(new String[]{"/bin/sh", "-c", shellCommand});
 
-            assertThat(output.standardOutput(), is("Reprocessed 2 messages\n"));
+            assertThat(output.standardOutput(), is("{\"Command\":\"Reprocess message\",\"Occurrences\":2}\n"));
             assertThat(output.errorOutput, equalTo("Skipped retrying of message id unknown_id123 as it does not exist\n"));
 
             assertDLQHasSizeOf(0);
