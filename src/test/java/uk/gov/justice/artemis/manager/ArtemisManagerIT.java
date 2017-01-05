@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.isEmptyString;
 import static org.junit.Assert.assertThat;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.cleanQueue;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.closeJmsConnection;
+import static uk.gov.justice.artemis.manager.util.JmsTestUtil.consumerOf;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.openJmsConnection;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putInQueue;
 
@@ -25,8 +26,11 @@ import org.junit.Test;
 
 //to run this test from IDE start artemis first by executing ./target/server0/bin/artemis run
 public class ArtemisManagerIT {
-    public static final String DLQ = "DLQ";
-
+    
+    private static final String DLQ = "DLQ";
+    private static final String COMMAND_LINE_BROWSE = "java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0";
+    private static final String COMMAND_LINE_REPROCESS = "java -jar target/artemis-manager.jar reprocess -host localhost -port 3000 -brokerName 0.0.0.0";
+    private static final String COMMAND_LINE_REMOVE = "java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0";
 
     @BeforeClass
     public static void beforeClass() throws JMSException {
@@ -45,8 +49,7 @@ public class ArtemisManagerIT {
         putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\",\"id\":\"c97c5b7b-abc3-49d4-96a9-bcd83aa4ea12\"}}", "jms.queue.abracadabra");
         putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\",\"id\":\"c97c5b7b-abc3-49d4-96a9-bcd83aa4ea13\"}}", "jms.queue.hocuspocus");
 
-
-        final Output output = execute("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+        final Output output = execute(COMMAND_LINE_BROWSE);
         assertThat(output.errorOutput, isEmptyString());
 
         final String standardOutput = output.standardOutput();
@@ -87,20 +90,17 @@ public class ArtemisManagerIT {
     @Test
     public void shouldRemoveMessageById() throws Exception {
 
-        cleanQueue(DLQ);
+        setDefaultDLQMessages();
 
-        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\"}}", "jms.queue.abracadabra");
-        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\"}}", "jms.queue.hocuspocus");
+        final String messageData = standardOutputOf(COMMAND_LINE_BROWSE);
 
-        final String messageData = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
-
-        List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
+        final List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
         assertThat(msgIds, hasSize(2));
 
         final String msgIdToRemove = msgIds.get(0);
-        execute("java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0 -msgId " + msgIdToRemove);
+        execute(COMMAND_LINE_REMOVE + " -msgId " + msgIdToRemove);
 
-        final String messageDataAfterRemoval = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+        final String messageDataAfterRemoval = standardOutputOf(COMMAND_LINE_BROWSE);
 
         assertThat(messageDataAfterRemoval, hasJsonPath("$..msgId", hasSize(1)));
         assertThat(messageDataAfterRemoval, hasJsonPath("$[0].msgId", equalTo(msgIds.get(1))));
@@ -110,7 +110,7 @@ public class ArtemisManagerIT {
     @Test
     public void shouldReturnInfoIfMessageNotound() throws IOException {
 
-        final Output output = execute("java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0 -msgId 1234");
+        final Output output = execute(COMMAND_LINE_REMOVE + " -msgId 1234");
 
         assertThat(output.errorOutput(), is("No message found for JMSMessageID: ID:1234\n"));
     }
@@ -118,22 +118,19 @@ public class ArtemisManagerIT {
     @Test
     public void shouldRemoveMultipleMessagesReadingIdsFromSystemInput() throws Exception {
         if (notWindows()) {
-            cleanQueue(DLQ);
-
-            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\"}}", "jms.queue.abracadabra");
-            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\"}}", "jms.queue.hocuspocus");
+            setDefaultDLQMessages();
             putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name2\"}}", "jms.queue.abracadabra2");
 
 
-            final String messageData = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+            final String messageData = standardOutputOf(COMMAND_LINE_BROWSE);
 
-            List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
+            final List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
 
-            final String shellCommand = "echo " + msgIds.get(0) + " " + msgIds.get(2) + " | java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0";
+            final String shellCommand = "echo " + msgIds.get(0) + " " + msgIds.get(2) + " | " + COMMAND_LINE_REMOVE;
             final Output output = execute(new String[]{"/bin/sh", "-c", shellCommand});
             assertThat(output.errorOutput(), is(""));
 
-            final String messageDataAfterRemoval = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+            final String messageDataAfterRemoval = standardOutputOf(COMMAND_LINE_BROWSE);
 
             assertThat(messageDataAfterRemoval, hasJsonPath("$..msgId", hasSize(1)));
             assertThat(messageDataAfterRemoval, hasJsonPath("$[0].msgId", equalTo(msgIds.get(1))));
@@ -144,20 +141,16 @@ public class ArtemisManagerIT {
     @Test
     public void shouldIgnoreUnknownMessageIds() throws Exception {
         if (notWindows()) {
-            cleanQueue(DLQ);
+            setDefaultDLQMessages();
 
-            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\"}}", "jms.queue.abracadabra");
-            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\"}}", "jms.queue.hocuspocus");
+            final String messageData = standardOutputOf(COMMAND_LINE_BROWSE);
 
+            final List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
 
-            final String messageData = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
-
-            List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
-
-            final String shellCommand = "echo unknown_id123 " + msgIds.get(0) + " | java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0";
+            final String shellCommand = "echo unknown_id123 " + msgIds.get(0) + " | " + COMMAND_LINE_REMOVE;
             execute(new String[]{"/bin/sh", "-c", shellCommand});
 
-            final String messageDataAfterRemoval = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
+            final String messageDataAfterRemoval = standardOutputOf(COMMAND_LINE_BROWSE);
 
             assertThat(messageDataAfterRemoval, hasJsonPath("$..msgId", hasSize(1)));
             assertThat(messageDataAfterRemoval, hasJsonPath("$[0].msgId", equalTo(msgIds.get(1))));
@@ -168,22 +161,57 @@ public class ArtemisManagerIT {
     public void shouldOutputNumberOfRemovedMessages() throws JMSException, IOException {
 
         if (notWindows()) {
-            cleanQueue(DLQ);
+            setDefaultDLQMessages();
 
-            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\"}}", "jms.queue.abracadabra");
-            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\"}}", "jms.queue.hocuspocus");
+            final String messageData = standardOutputOf(COMMAND_LINE_BROWSE);
 
+            final List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
 
-            final String messageData = standardOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0");
-
-            List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
-
-            final String shellCommand = "echo unknown_id123 " + msgIds.get(0) + " " + msgIds.get(1) + " | java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0";
+            final String shellCommand = "echo unknown_id123 " + msgIds.get(0) + " " + msgIds.get(1) + " | " + COMMAND_LINE_REMOVE;
             final Output output = execute(new String[]{"/bin/sh", "-c", shellCommand});
 
-            assertThat(output.standardOutput(), is("Removed 2 messages\n"));
-
+            assertThat(output.standardOutput(), is("{\"Command\":\"Remove message\",\"Occurrences\":2}\n"));
         }
+    }
+
+    @Test
+    public void shouldReprocessMessageOntoOriginalQueue() throws JMSException, IOException {
+        if (notWindows()) {
+            setDefaultDLQMessages();
+
+            // Create consumers so that the queues are created within the broker
+            consumerOf("abracadabra");
+            consumerOf("hocuspocus");
+
+            final String messageData = standardOutputOf(COMMAND_LINE_BROWSE);
+
+            final List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
+
+            final String shellCommand = "echo unknown_id123 " + msgIds.get(0) + " " + msgIds.get(1) + " | " + COMMAND_LINE_REPROCESS;
+            final Output output = execute(new String[]{"/bin/sh", "-c", shellCommand});
+
+            assertThat(output.standardOutput(), is("{\"Command\":\"Reprocess message\",\"Occurrences\":2}\n"));
+            assertThat(output.errorOutput, equalTo("Skipped retrying of message id unknown_id123 as it does not exist\n"));
+
+            assertDLQHasSizeOf(0);
+            assertThat(cleanQueue("abracadabra"), equalTo(1));
+            assertThat(cleanQueue("hocuspocus"), equalTo(1));
+        }
+    }
+
+    private void setDefaultDLQMessages() throws JMSException, IOException {
+        cleanQueue(DLQ);
+
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\"}}", "jms.queue.abracadabra");
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\"}}", "jms.queue.hocuspocus");
+
+        assertDLQHasSizeOf(2);
+    }
+
+    private void assertDLQHasSizeOf(int queueSize) throws IOException {
+        final Output browserOutput = execute(COMMAND_LINE_BROWSE);
+
+        assertThat(browserOutput.standardOutput(), hasJsonPath("$..msgId", hasSize(queueSize)));
     }
 
     private boolean notWindows() {

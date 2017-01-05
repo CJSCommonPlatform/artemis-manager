@@ -28,7 +28,6 @@ public class BrowseTest {
         browseCommand.host = "some.host";
         browseCommand.port = "1212";
 
-
         browseCommand.run(null);
         verify(artemisConnector).messagesOf("some.host", "1212", "brokerabc", "DLQ");
 

@@ -1,8 +1,10 @@
 # artemis-manager
 
-* Browse DLQ
+## Browse DLQ
 
 _java -jar artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0_
+
+## Remove Message from DLQ
 
 * Remove message by id
 
@@ -11,6 +13,18 @@ _java -jar artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0
 * Remove multiple messages (provide list of message ids on input)
 
 _echo msgId1 msgId2 | java -jar artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0_
+
+## Reprocess Message from DLQ
+
+* Reprocess message by id
+
+_java -jar artemis-manager.jar reprocess -host localhost -port 3000 -brokerName 0.0.0.0 -msgId 12d8e63e-c842-11e6-986d-00e1000074d2_
+
+* Reprocess multiple messages (provide list of message ids on input)
+
+_echo msgId1 msgId2 | java -jar artemis-manager.jar reprocess -host localhost -port 3000 -brokerName 0.0.0.0_
+
+## Chaining Commands
 
 * Chaining commands
 

@@ -1,7 +1,6 @@
 package uk.gov.justice.artemis.manager.util;
 
 import static org.apache.activemq.artemis.api.jms.ActiveMQJMSClient.createQueue;
-import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,6 +18,7 @@ import javax.jms.TextMessage;
 import org.apache.activemq.artemis.jms.client.ActiveMQQueueConnectionFactory;
 
 public class JmsTestUtil {
+
     private static final QueueConnectionFactory JMS_CF = new ActiveMQQueueConnectionFactory("tcp://localhost:61616");
     private static QueueConnection JMS_CONNECTION;
     private static QueueSession JMS_SESSION;
@@ -34,16 +34,25 @@ public class JmsTestUtil {
         producerOf(queueName).send(message);
     }
 
-    public static void cleanQueue(final String queueName) throws JMSException {
+    /**
+     * Returns the number of messages that were removed from the queue.
+     *
+     * @param queueName - the name of the queue that is to be cleaned
+     * @return the number of cleaned messagesß
+     */
+    public static int cleanQueue(final String queueName) throws JMSException {
         JMS_CONNECTION.start();
         final MessageConsumer consumer = consumerOf(queueName);
 
+        int cleanedMessage = 0;
         while (consumer.receiveNoWait() != null) {
+            cleanedMessage++;
         }
         JMS_CONNECTION.stop();
+        return cleanedMessage;
     }
 
-    private static MessageConsumer consumerOf(final String queueName) throws JMSException {
+    public static MessageConsumer consumerOf(final String queueName) throws JMSException {
         return CONSUMERS.computeIfAbsent(queueName, name -> {
             try {
                 return JMS_SESSION.createConsumer(queueOf(name));
