@@ -2,10 +2,12 @@ package uk.gov.justice.artemis.manager.util;
 
 import static org.apache.activemq.artemis.api.jms.ActiveMQJMSClient.createQueue;
 
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.jms.JMSException;
+import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Queue;
@@ -31,6 +33,18 @@ public class JmsTestUtil {
         if (origAddress.length > 0) {
             message.setStringProperty("_AMQ_ORIG_ADDRESS", origAddress[0]);
         }
+        producerOf(queueName).send(message);
+    }
+
+    public static void putInQueue(final String queueName, final InputStream messageInput, final String... origAddress) throws JMSException {
+        final Message message = JMS_SESSION.createBytesMessage();
+
+        message.setObjectProperty("JMS_AMQ_InputStream", messageInput);
+
+        if (origAddress.length > 0) {
+            message.setStringProperty("_AMQ_ORIG_ADDRESS", origAddress[0]);
+        }
+
         producerOf(queueName).send(message);
     }
 

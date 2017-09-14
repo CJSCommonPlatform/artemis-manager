@@ -11,7 +11,7 @@
     </parent>
     <properties>
         <framework-tools-command.version>1.0.0</framework-tools-command.version>
-        <artemis.version>1.5.1</artemis.version>
+        <artemis.version>1.5.5</artemis.version>
         <artemis.home>${project.build.directory}/apache-artemis-${artemis.version}</artemis.home>
     </properties>
 

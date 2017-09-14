@@ -1,7 +1,7 @@
 package uk.gov.justice.framework.tools.command;
 
 import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
-import uk.gov.justice.artemis.manager.connector.JmxArtemisConnector;
+import uk.gov.justice.artemis.manager.connector.CombinedJmsAndJmxArtemisConnector;
 import uk.gov.justice.output.ConsolePrinter;
 import uk.gov.justice.output.OutputPrinter;
 
@@ -9,7 +9,7 @@ import com.beust.jcommander.Parameter;
 
 abstract class AbstractArtemisCommand {
 
-    ArtemisConnector artemisConnector = new JmxArtemisConnector();
+    ArtemisConnector artemisConnector = new CombinedJmsAndJmxArtemisConnector();
 
     final OutputPrinter outputPrinter = new ConsolePrinter();
 
