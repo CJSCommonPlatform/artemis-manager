@@ -28,9 +28,9 @@ import org.junit.Test;
 public class ArtemisManagerIT {
 
     private static final String DLQ = "DLQ";
-    private static final String COMMAND_LINE_BROWSE = "java -jar target/artemis-manager.jar browse -host localhost -port 61616 -brokerName 0.0.0.0";
-    private static final String COMMAND_LINE_REPROCESS = "java -jar target/artemis-manager.jar reprocess -host localhost -port 3000 -brokerName 0.0.0.0";
-    private static final String COMMAND_LINE_REMOVE = "java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0";
+    private static final String COMMAND_LINE_BROWSE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar browse -host localhost -port 61616 -brokerName 0.0.0.0";
+    private static final String COMMAND_LINE_REPROCESS = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar reprocess -host localhost -port 3000 -brokerName 0.0.0.0";
+    private static final String COMMAND_LINE_REMOVE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0";
 
     @BeforeClass
     public static void beforeClass() throws JMSException {
