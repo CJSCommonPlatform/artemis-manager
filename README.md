@@ -5,16 +5,23 @@
 
 ## Browse DLQ
 
-_java -jar artemis-manager.jar browse -host localhost -port 3000 -brokerName default_
+**Note: Browse uses JMS tcp port to connect to the Artemis broker.**
 
-* port - jmx port
+_java -jar artemis-manager.jar browse -host localhost -port 61616 -brokerName default_
+
+* port - JMS tcp port
 * brokerName - name of the broker configured in the broker.xml, use _default_ if no specific broker configuration provided
 
 ## Remove Message from DLQ
 
 * Remove message by id
 
+**Note: Remove uses JMX port to connect to the Artemis broker.**
+
 _java -jar artemis-manager.jar remove -host localhost -port 3000 -brokerName default -msgId 12d8e63e-c842-11e6-986d-00e1000074d2_
+
+* port - JMX port
+* brokerName - name of the broker configured in the broker.xml, use _default_ if no specific broker configuration provided
 
 * Remove multiple messages (provide list of message ids on input)
 
@@ -24,7 +31,12 @@ _echo msgId1 msgId2 | java -jar artemis-manager.jar remove -host localhost -port
 
 * Reprocess message by id
 
+**Note: Reprocess uses JMX port to connect to the Artemis broker.**
+
 _java -jar artemis-manager.jar reprocess -host localhost -port 3000 -brokerName default -msgId 12d8e63e-c842-11e6-986d-00e1000074d2_
+
+* port - JMX port
+* brokerName - name of the broker configured in the broker.xml, use _default_ if no specific broker configuration provided
 
 * Reprocess multiple messages (provide list of message ids on input)
 
