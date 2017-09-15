@@ -26,11 +26,11 @@ import org.junit.Test;
 
 //to run this test from IDE start artemis first by executing ./target/server0/bin/artemis run
 public class ArtemisManagerIT {
-    
+
     private static final String DLQ = "DLQ";
-    private static final String COMMAND_LINE_BROWSE = "java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName 0.0.0.0";
-    private static final String COMMAND_LINE_REPROCESS = "java -jar target/artemis-manager.jar reprocess -host localhost -port 3000 -brokerName 0.0.0.0";
-    private static final String COMMAND_LINE_REMOVE = "java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0";
+    private static final String COMMAND_LINE_BROWSE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar browse -host localhost -port 61616 -brokerName 0.0.0.0";
+    private static final String COMMAND_LINE_REPROCESS = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar reprocess -host localhost -port 3000 -brokerName 0.0.0.0";
+    private static final String COMMAND_LINE_REMOVE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0";
 
     @BeforeClass
     public static void beforeClass() throws JMSException {
@@ -199,6 +199,37 @@ public class ArtemisManagerIT {
         }
     }
 
+    @Test
+    public void shouldReprocessLargeMessageOntoOriginalQueue() throws Exception {
+        if (notWindows()) {
+
+            cleanQueue(DLQ);
+            cleanQueue("abracadabra");
+            cleanQueue("hocuspocus");
+
+            // Create consumers so that the queues are created within the broker
+            consumerOf("abracadabra");
+            consumerOf("hocuspocus");
+
+            putInQueue(DLQ, createLargeMessage(4024L), "jms.queue.abracadabra");
+            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\"}}", "jms.queue.hocuspocus");
+
+            assertDLQHasSizeOf(2);
+
+            final String messageData = standardOutputOf(COMMAND_LINE_BROWSE);
+            final List<String> msgIds = JsonPath.read(messageData, "$[*].msgId");
+
+            final String shellCommand2 = "echo " + msgIds.get(0) + " " + msgIds.get(1) + " | " + COMMAND_LINE_REPROCESS;
+            final Output output = execute(new String[]{"/bin/sh", "-c", shellCommand2});
+
+            assertThat(output.standardOutput(), is("{\"Command\":\"Reprocess message\",\"Occurrences\":2}\n"));
+
+            assertDLQHasSizeOf(0);
+            assertThat(cleanQueue("abracadabra"), equalTo(1));
+            assertThat(cleanQueue("hocuspocus"), equalTo(1));
+        }
+    }
+
     private void setDefaultDLQMessages() throws JMSException, IOException {
         cleanQueue(DLQ);
 
@@ -237,6 +268,25 @@ public class ArtemisManagerIT {
         Runtime runtime = Runtime.getRuntime();
         final Process process = runtime.exec(cmd);
         return new Output(IOUtils.toString(process.getInputStream()), IOUtils.toString(process.getErrorStream()));
+    }
+
+    private String createLargeMessage(final long messageSize) throws IOException {
+        final StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append("{\n  \"_metadata\": {\n");
+
+        for (long index = 0L; index < messageSize - 1; index++) {
+            stringBuilder.append("      \"name")
+                    .append(index)
+                    .append("\": \"some name\",\n");
+        }
+
+        stringBuilder.append("      \"name")
+                .append(messageSize)
+                .append("\": \"some name\"\n")
+                .append("  }\n}");
+
+        return stringBuilder.toString();
     }
 
     private static class Output {
