@@ -5,6 +5,7 @@ import java.io.StringReader;
 
 import javax.json.Json;
 import javax.json.JsonObject;
+import javax.json.JsonReader;
 
 public class MessageData {
     private String msgId;
@@ -14,7 +15,10 @@ public class MessageData {
     public MessageData(final String msgId, final String originalDestination, final String msgText) {
         this.msgId = msgId;
         this.originalDestination = originalDestination;
-        this.msgContent = Json.createReader(new StringReader(String.valueOf(msgText))).readObject();
+
+        try(final JsonReader jsonReader = Json.createReader(new StringReader(String.valueOf(msgText)))) {
+            this.msgContent = jsonReader.readObject();
+        }
     }
 
     public String getMsgId() {
