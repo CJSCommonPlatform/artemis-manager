@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Function;
 
 import javax.jms.Message;
 import javax.jms.Queue;
@@ -40,6 +41,40 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
     private static final String UNSUPPORTED_MESSAGE_CONTENT = "{\"error\": \"Unsupported message content\"}";
 
     final OutputPrinter outputPrinter = new ConsolePrinter();
+
+    private Function<JMSQueueControl, Function<Iterator<String>, Long>> removeMessages = queueControl -> msgIds -> {
+        long removedMessages = 0L;
+
+        while (msgIds.hasNext()) {
+            try {
+                queueControl.removeMessage(format("ID:%s", msgIds.next()));
+                removedMessages++;
+            } catch (final Exception exception) {
+                outputPrinter.writeException(exception);
+            }
+        }
+
+        return removedMessages;
+    };
+
+    private Function<JMSQueueControl, Function<Iterator<String>, Long>> reprocessMessages = queueControl -> msgIds -> {
+        long reprocessedMessages = 0L;
+
+        while (msgIds.hasNext()) {
+            try {
+                final String nextId = msgIds.next();
+                if (queueControl.retryMessage(format("ID:%s", nextId))) {
+                    reprocessedMessages++;
+                } else {
+                    outputPrinter.writeException(new RuntimeException(format("Skipped retrying of message id %s as it does not exist", nextId)));
+                }
+            } catch (final Exception exception) {
+                outputPrinter.writeException(exception);
+            }
+        }
+        return reprocessedMessages;
+    };
+
 
     @Override
     public List<MessageData> messagesOf(final String host, final String port, final String brokerName, final String destinationName) throws Exception {
@@ -78,41 +113,21 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
 
     @Override
     public long remove(final String host, final String port, final String brokerName, final String destinationName, final Iterator<String> msgIds) throws Exception {
-        final JMSQueueControl queueControl = queueControlOf(host, port, brokerName, destinationName);
-        long removedMessages = 0;
-        while (msgIds.hasNext()) {
-            try {
-                queueControl.removeMessage(format("ID:%s", msgIds.next()));
-                removedMessages++;
-            } catch (final IllegalArgumentException exception) {
-                outputPrinter.writeException(exception);
-            }
-        }
-        return removedMessages;
+        return processJmxFunction(host, port, brokerName, destinationName, msgIds, removeMessages);
     }
 
     @Override
     public long reprocess(final String host, final String port, final String brokerName, final String destinationName, final Iterator<String> msgIds) throws Exception {
-        final JMSQueueControl queueControl = queueControlOf(host, port, brokerName, destinationName);
-        long reprocessedMessages = 0;
-        while (msgIds.hasNext()) {
-            try {
-                final String nextId = msgIds.next();
-                if (queueControl.retryMessage(format("ID:%s", nextId))) {
-                    reprocessedMessages++;
-                } else {
-                    outputPrinter.writeException(new RuntimeException(format("Skipped retrying of message id %s as it does not exist", nextId)));
-                }
-            } catch (final IllegalArgumentException exception) {
-                outputPrinter.writeException(exception);
-            }
-        }
-        return reprocessedMessages;
+        return processJmxFunction(host, port, brokerName, destinationName, msgIds, reprocessMessages);
     }
 
-    private JMSQueueControl queueControlOf(final String host, final String port, final String brokerName, final String destinationName) throws Exception {
+    private long processJmxFunction(final String host, final String port, final String brokerName, final String destinationName, final Iterator<String> msgIds, final Function<JMSQueueControl, Function<Iterator<String>, Long>> processMessages) throws Exception {
         final ObjectName on = ObjectNameBuilder.create(getDefaultJmxDomain(), brokerName, true).getJMSQueueObjectName(destinationName);
-        final JMXConnector connector = connect(new JMXServiceURL(format(JMX_URL, host, port)), emptyMap());
-        return newProxyInstance(connector.getMBeanServerConnection(), on, JMSQueueControl.class, false);
+
+        try (final JMXConnector connector = connect(new JMXServiceURL(format(JMX_URL, host, port)), emptyMap())) {
+            final JMSQueueControl queueControl = newProxyInstance(connector.getMBeanServerConnection(), on, JMSQueueControl.class, false);
+
+            return processMessages.apply(queueControl).apply(msgIds);
+        }
     }
 }
