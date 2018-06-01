@@ -22,28 +22,32 @@ import org.apache.activemq.artemis.jms.client.ActiveMQQueueConnectionFactory;
 public class JmsTestUtil {
 
     private static final QueueConnectionFactory JMS_CF = new ActiveMQQueueConnectionFactory("tcp://localhost:61616");
+    private static final String ORIGINAL_DESTINATION = "_AMQ_ORIG_ADDRESS";
+    private static final String CONSUMER = "_AMQ_ORIG_QUEUE";
     private static QueueConnection JMS_CONNECTION;
     private static QueueSession JMS_SESSION;
     private static Map<String, Queue> QUEUES = new HashMap<>();
     private static Map<String, MessageConsumer> CONSUMERS = new HashMap<>();
     private static Map<String, MessageProducer> PRODUCERS = new HashMap<>();
 
-    public static void putInQueue(final String queueName, final String msgText, final String... origAddress) throws JMSException {
+    public static void putInQueue(final String queueName, final String msgText, final String consumer, final String... origAddress) throws JMSException {
         TextMessage message = JMS_SESSION.createTextMessage(msgText);
         if (origAddress.length > 0) {
-            message.setStringProperty("_AMQ_ORIG_ADDRESS", origAddress[0]);
+            message.setStringProperty(ORIGINAL_DESTINATION, origAddress[0]);
         }
+        message.setStringProperty(CONSUMER, consumer);
         producerOf(queueName).send(message);
     }
 
-    public static void putInQueue(final String queueName, final InputStream messageInput, final String... origAddress) throws JMSException {
+    public static void putInQueue(final String queueName, final InputStream messageInput, final String consumer, final String... origAddress) throws JMSException {
         final Message message = JMS_SESSION.createBytesMessage();
 
         message.setObjectProperty("JMS_AMQ_InputStream", messageInput);
 
         if (origAddress.length > 0) {
-            message.setStringProperty("_AMQ_ORIG_ADDRESS", origAddress[0]);
+            message.setStringProperty(ORIGINAL_DESTINATION, origAddress[0]);
         }
+        message.setStringProperty(CONSUMER, consumer);
 
         producerOf(queueName).send(message);
     }

@@ -28,6 +28,8 @@ public class JmxArtemisConnector implements ArtemisConnector {
     private static final String JMS_MESSAGE_ID = "JMSMessageID";
     private static final String ORIGINAL_DESTINATION = "OriginalDestination";
     private static final String TEXT = "Text";
+    private static final String PROPERTIES_TEXT = "PropertiesText";
+    private static final String CONSUMER = "_AMQ_ORIG_QUEUE";
 
     final OutputPrinter outputPrinter = new ConsolePrinter();
 
@@ -35,7 +37,12 @@ public class JmxArtemisConnector implements ArtemisConnector {
     public List<MessageData> messagesOf(final String host, final String port, final String brokerName, final String destinationName) throws Exception {
         final CompositeData[] browseResult = queueControlOf(host, port, brokerName, destinationName).browse();
         return stream(browseResult)
-                .map(cd -> new MessageData(String.valueOf(cd.get(JMS_MESSAGE_ID)).replaceFirst("ID:", ""), String.valueOf(cd.get(ORIGINAL_DESTINATION)), String.valueOf(cd.get(TEXT))))
+                .map(cd -> new MessageData(
+                        String.valueOf(cd.get(JMS_MESSAGE_ID)).replaceFirst("ID:", ""),
+                        String.valueOf(cd.get(ORIGINAL_DESTINATION)),
+                        String.valueOf(cd.get(TEXT)),
+                        stream(String.valueOf(cd.get(PROPERTIES_TEXT)).split(","))
+                                .filter(e -> e.contains(CONSUMER)).findFirst().get().replaceFirst(CONSUMER + "=", "").trim()))
                 .collect(toList());
 
     }

@@ -41,7 +41,8 @@ public class ConsolePrinter implements OutputPrinter {
             jsonResponse
                     .add(Json.createObjectBuilder().add("msgId", String.valueOf(md.getMsgId()))
                             .add("originalDestination", String.valueOf(md.getOriginalDestination()))
-                            .add("msgContent", md.getMsgContent()));
+                            .add("msgContent", md.getMsgContent())
+                            .add("consumer",md.getConsumer()));
 
         }
         return jsonResponse.build().toString();

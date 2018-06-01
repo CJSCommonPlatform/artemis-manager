@@ -39,6 +39,7 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
     private static final String ID_PREFIX = "ID:";
     private static final String BLANK = "";
     private static final String UNSUPPORTED_MESSAGE_CONTENT = "{\"error\": \"Unsupported message content\"}";
+    private static final String JMS_CONSUMER = "_AMQ_ORIG_QUEUE";
 
     final OutputPrinter outputPrinter = new ConsolePrinter();
 
@@ -96,6 +97,7 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
                 final String jmsMessageID = message.getJMSMessageID().replaceFirst(ID_PREFIX, BLANK);
                 final String originalDestination = message.getStringProperty(JMS_ORIGINAL_DESTINATION);
                 final String text;
+                final String consumer = message.getStringProperty(JMS_CONSUMER);
 
                 if (message instanceof TextMessage) {
                     final TextMessage textMessage = (TextMessage) message;
@@ -104,7 +106,7 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
                     text = UNSUPPORTED_MESSAGE_CONTENT;
                 }
 
-                messages.add(new MessageData(jmsMessageID, originalDestination, text));
+                messages.add(new MessageData(jmsMessageID, originalDestination, text, consumer));
             }
 
             return messages;
