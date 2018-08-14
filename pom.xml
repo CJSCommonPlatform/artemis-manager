@@ -157,9 +157,9 @@
                         <configuration>
                             <ignore>false</ignore>
                             <home>${artemis.home}</home>
-                            <javaOptions>-Dcom.sun.management.jmxremote
-                                -Dcom.sun.management.jmxremote.port=3000
-                                -Dcom.sun.management.jmxremote.ssl=false
+                            <javaOptions>-Dcom.sun.management.jmxremote \
+                                -Dcom.sun.management.jmxremote.port=3000 \
+                                -Dcom.sun.management.jmxremote.ssl=false \
                                 -Dcom.sun.management.jmxremote.authenticate=false
                             </javaOptions>
                         </configuration>
