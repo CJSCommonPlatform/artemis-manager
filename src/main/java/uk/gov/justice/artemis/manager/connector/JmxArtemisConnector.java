@@ -23,6 +23,7 @@ import javax.management.remote.JMXServiceURL;
 
 import org.apache.activemq.artemis.api.core.management.ObjectNameBuilder;
 import org.apache.activemq.artemis.api.jms.management.JMSQueueControl;
+import org.apache.activemq.artemis.api.jms.management.JMSServerControl;
 
 public class JmxArtemisConnector implements ArtemisConnector {
 
@@ -82,8 +83,21 @@ public class JmxArtemisConnector implements ArtemisConnector {
         }
     }
 
+    @Override
+    public String[] queueNames(final String host, final String port, final String brokerName) throws Exception {
+        try (final JMXConnector connector = getJMXConnector(host, port)) {
+            JMSServerControl serverControl = serverControlOf(connector, brokerName);
+            return serverControl.getQueueNames();
+        }
+    }
+
     protected JMXConnector getJMXConnector(final String host, final String port) throws MalformedURLException, IOException {
         return connect(new JMXServiceURL(format(JMX_URL, host, port)), emptyMap());
+    }
+
+    protected JMSServerControl serverControlOf(final JMXConnector connector, final String brokerName) throws Exception {
+        final ObjectName on = ObjectNameBuilder.create(getDefaultJmxDomain(), brokerName, true).getJMSServerObjectName();
+        return newProxyInstance(connector.getMBeanServerConnection(), on, JMSServerControl.class, false);
     }
 
     protected JMSQueueControl queueControlOf(final JMXConnector connector, final String brokerName, final String destinationName) throws Exception {

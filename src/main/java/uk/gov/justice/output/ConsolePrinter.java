@@ -21,6 +21,11 @@ public class ConsolePrinter implements OutputPrinter {
     }
 
     @Override
+    public void writeStringArray(final String[] items) {
+        System.out.println(jsonStringOf(items));
+    }
+
+    @Override
     public void writeMessages(final List<MessageData> messageData) {
         System.out.println(jsonStringOf(messageData));
     }
@@ -43,6 +48,14 @@ public class ConsolePrinter implements OutputPrinter {
                             .add("originalDestination", String.valueOf(md.getOriginalDestination()))
                             .add("msgContent", md.getMsgContent()));
 
+        }
+        return jsonResponse.build().toString();
+    }
+
+    private String jsonStringOf(final String[] items) {
+        final JsonArrayBuilder jsonResponse = Json.createArrayBuilder();
+        for (String item : items) {
+            jsonResponse.add(item);
         }
         return jsonResponse.build().toString();
     }

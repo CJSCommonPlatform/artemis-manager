@@ -20,6 +20,12 @@ public interface OutputPrinter {
     public void writeCommandResult(final String command, final long count);
 
     /**
+     * Writes a list of Strings to the output in JSON Array style
+     * @param items - the list of items to be written
+     */
+    public void writeStringArray(final String[] items);
+
+    /**
      * Writes a list of {@link MessageData} content to the output.
      * @param messageData - the list of data to be written.
      */
