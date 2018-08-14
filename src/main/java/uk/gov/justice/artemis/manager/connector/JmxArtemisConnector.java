@@ -31,7 +31,7 @@ public class JmxArtemisConnector implements ArtemisConnector {
     private static final String ORIGINAL_DESTINATION = "OriginalDestination";
     private static final String TEXT = "Text";
 
-    final OutputPrinter outputPrinter = new ConsolePrinter();
+    final protected OutputPrinter outputPrinter = new ConsolePrinter();
 
     @Override
     public List<MessageData> messagesOf(final String host, final String port, final String brokerName, final String destinationName) throws Exception {
@@ -82,11 +82,11 @@ public class JmxArtemisConnector implements ArtemisConnector {
         }
     }
 
-    private JMXConnector getJMXConnector(final String host, final String port) throws MalformedURLException, IOException {
+    protected JMXConnector getJMXConnector(final String host, final String port) throws MalformedURLException, IOException {
         return connect(new JMXServiceURL(format(JMX_URL, host, port)), emptyMap());
     }
 
-    private JMSQueueControl queueControlOf(final JMXConnector connector, final String brokerName, final String destinationName) throws Exception {
+    protected JMSQueueControl queueControlOf(final JMXConnector connector, final String brokerName, final String destinationName) throws Exception {
         final ObjectName on = ObjectNameBuilder.create(getDefaultJmxDomain(), brokerName, true).getJMSQueueObjectName(destinationName);
         return newProxyInstance(connector.getMBeanServerConnection(), on, JMSQueueControl.class, false);
     }

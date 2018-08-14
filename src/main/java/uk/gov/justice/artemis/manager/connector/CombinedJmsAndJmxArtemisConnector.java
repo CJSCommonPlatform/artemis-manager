@@ -1,13 +1,6 @@
 package uk.gov.justice.artemis.manager.connector;
 
 import static java.lang.String.format;
-import static java.util.Collections.emptyMap;
-import static javax.management.MBeanServerInvocationHandler.newProxyInstance;
-import static javax.management.remote.JMXConnectorFactory.connect;
-import static org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration.getDefaultJmxDomain;
-
-import uk.gov.justice.output.ConsolePrinter;
-import uk.gov.justice.output.OutputPrinter;
 
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -22,25 +15,23 @@ import javax.jms.QueueConnection;
 import javax.jms.QueueSession;
 import javax.jms.Session;
 import javax.jms.TextMessage;
-import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
-import javax.management.remote.JMXServiceURL;
 
-import org.apache.activemq.artemis.api.core.management.ObjectNameBuilder;
 import org.apache.activemq.artemis.api.jms.ActiveMQJMSClient;
 import org.apache.activemq.artemis.api.jms.management.JMSQueueControl;
 import org.apache.activemq.artemis.jms.client.ActiveMQQueueConnectionFactory;
 
-public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
+/**
+ * reprocess, remove and messagesOf were re-implemented in JMS due to issues with large messages over JMX.
+ *
+ */
+public class CombinedJmsAndJmxArtemisConnector extends JmxArtemisConnector {
 
     private static final String JMS_URL = "tcp://%s:%s";
     private static final String JMS_ORIGINAL_DESTINATION = "_AMQ_ORIG_ADDRESS";
-    private static final String JMX_URL = "service:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi";
     private static final String ID_PREFIX = "ID:";
     private static final String BLANK = "";
     private static final String UNSUPPORTED_MESSAGE_CONTENT = "{\"error\": \"Unsupported message content\"}";
-
-    final OutputPrinter outputPrinter = new ConsolePrinter();
 
     private Function<JMSQueueControl, Function<Iterator<String>, Long>> removeMessages = queueControl -> msgIds -> {
         long removedMessages = 0L;
@@ -122,10 +113,8 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
     }
 
     private long processJmxFunction(final String host, final String port, final String brokerName, final String destinationName, final Iterator<String> msgIds, final Function<JMSQueueControl, Function<Iterator<String>, Long>> processMessages) throws Exception {
-        final ObjectName on = ObjectNameBuilder.create(getDefaultJmxDomain(), brokerName, true).getJMSQueueObjectName(destinationName);
-
-        try (final JMXConnector connector = connect(new JMXServiceURL(format(JMX_URL, host, port)), emptyMap())) {
-            final JMSQueueControl queueControl = newProxyInstance(connector.getMBeanServerConnection(), on, JMSQueueControl.class, false);
+        try (final JMXConnector connector = getJMXConnector(host, port)) {
+            final JMSQueueControl queueControl = queueControlOf(connector, brokerName, destinationName);
 
             return processMessages.apply(queueControl).apply(msgIds);
         }
