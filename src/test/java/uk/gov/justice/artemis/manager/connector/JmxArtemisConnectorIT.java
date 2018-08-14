@@ -3,6 +3,7 @@ package uk.gov.justice.artemis.manager.connector;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -112,5 +113,9 @@ public class JmxArtemisConnectorIT {
 
     }
 
-
+    @Test
+    public void shouldReturnListOfQueues() throws Exception {
+        final String[] queueNames = jmxArtemisConnector.queueNames("localhost", "3000", "0.0.0.0");
+        assertThat(queueNames, arrayContainingInAnyOrder(new String[] {"DLQ", "ExpiryQueue"}));
+    }
 }
