@@ -27,12 +27,12 @@ import org.apache.activemq.artemis.api.jms.management.JMSServerControl;
 
 public class JmxArtemisConnector implements ArtemisConnector {
 
+    final protected OutputPrinter outputPrinter = new ConsolePrinter();
+
     private static final String JMX_URL = "service:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi";
     private static final String JMS_MESSAGE_ID = "JMSMessageID";
     private static final String ORIGINAL_DESTINATION = "OriginalDestination";
     private static final String TEXT = "Text";
-
-    final protected OutputPrinter outputPrinter = new ConsolePrinter();
 
     @Override
     public List<MessageData> messagesOf(final String host, final String port, final String brokerName, final String destinationName) throws Exception {
@@ -91,7 +91,7 @@ public class JmxArtemisConnector implements ArtemisConnector {
         }
     }
 
-    protected JMXConnector getJMXConnector(final String host, final String port) throws MalformedURLException, IOException {
+    protected JMXConnector getJMXConnector(final String host, final String port) throws IOException {
         return connect(new JMXServiceURL(format(JMX_URL, host, port)), emptyMap());
     }
 
