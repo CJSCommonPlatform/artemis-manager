@@ -8,11 +8,7 @@ import static javax.management.MBeanServerInvocationHandler.newProxyInstance;
 import static javax.management.remote.JMXConnectorFactory.connect;
 import static org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration.getDefaultJmxDomain;
 
-import uk.gov.justice.output.ConsolePrinter;
-import uk.gov.justice.output.OutputPrinter;
-
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -24,6 +20,9 @@ import javax.management.remote.JMXServiceURL;
 import org.apache.activemq.artemis.api.core.management.ObjectNameBuilder;
 import org.apache.activemq.artemis.api.jms.management.JMSQueueControl;
 import org.apache.activemq.artemis.api.jms.management.JMSServerControl;
+
+import uk.gov.justice.output.ConsolePrinter;
+import uk.gov.justice.output.OutputPrinter;
 
 public class JmxArtemisConnector implements ArtemisConnector {
 
@@ -86,8 +85,15 @@ public class JmxArtemisConnector implements ArtemisConnector {
     @Override
     public String[] queueNames(final String host, final String port, final String brokerName) throws Exception {
         try (final JMXConnector connector = getJMXConnector(host, port)) {
-            JMSServerControl serverControl = serverControlOf(connector, brokerName);
+            final JMSServerControl serverControl = serverControlOf(connector, brokerName);
             return serverControl.getQueueNames();
+        }
+    }
+
+    public String[] topicNames(final String host, final String port, final String brokerName) throws Exception {
+        try (final JMXConnector connector = getJMXConnector(host, port)) {
+            final JMSServerControl serverControl = serverControlOf(connector, brokerName);
+            return serverControl.getTopicNames();
         }
     }
 
