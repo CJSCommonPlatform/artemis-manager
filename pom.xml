@@ -7,12 +7,12 @@
     <parent>
         <groupId>uk.gov.justice</groupId>
         <artifactId>maven-parent-pom</artifactId>
-        <version>1.7.1</version>
+        <version>1.6.0</version>
     </parent>
     <properties>
         <framework-tools-command.version>2.0.0</framework-tools-command.version>
+        <artemis.version>1.5.5</artemis.version>
         <artemis.home>${project.build.directory}/apache-artemis-${artemis.version}</artemis.home>
-        <artemis.version>1.5.6</artemis.version>
         <slf4j-version>1.7.10</slf4j-version>
         <cpp.repo.name>artemis-manager</cpp.repo.name>
     </properties>
@@ -31,7 +31,7 @@
             <dependency>
                 <groupId>uk.gov.justice</groupId>
                 <artifactId>maven-common-bom</artifactId>
-                <version>1.28.0</version>
+                <version>1.17.0</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -51,10 +51,7 @@
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>artemis-jms-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jboss.logging</groupId>
-            <artifactId>jboss-logging</artifactId>
+            <version>${artemis.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
