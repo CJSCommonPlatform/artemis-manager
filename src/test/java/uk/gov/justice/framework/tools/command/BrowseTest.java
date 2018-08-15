@@ -1,16 +1,14 @@
 package uk.gov.justice.framework.tools.command;
 
-import static org.junit.Assert.*;
 import static org.mockito.Mockito.verify;
-
-import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
+
+import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
 
 
 @RunWith(MockitoJUnitRunner.class)

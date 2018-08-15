@@ -1,13 +1,14 @@
 package uk.gov.justice.artemis.manager.connector;
 
 import static java.util.Arrays.asList;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.cleanQueue;
+import static uk.gov.justice.artemis.manager.util.JmsTestUtil.cleanTopic;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.closeJmsConnection;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.openJmsConnection;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putInQueue;
@@ -117,5 +118,16 @@ public class JmxArtemisConnectorIT {
     public void shouldReturnListOfQueues() throws Exception {
         final String[] queueNames = jmxArtemisConnector.queueNames("localhost", "3000", "0.0.0.0");
         assertThat(queueNames, arrayContainingInAnyOrder(new String[] {"DLQ", "ExpiryQueue"}));
+    }
+
+    @Test
+    public void shouldReturnListOfTopics() throws Exception {
+        final String topic = "testTopic";
+
+        cleanTopic(topic, "testSubscription");
+
+        final String[] topicNames = jmxArtemisConnector.topicNames("localhost", "3000", "0.0.0.0");
+
+        assertThat(topicNames, arrayContainingInAnyOrder(new String[] {"testTopic"}));
     }
 }
