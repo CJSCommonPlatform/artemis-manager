@@ -91,6 +91,13 @@ public class JmxArtemisConnector implements ArtemisConnector {
         }
     }
 
+    public String[] topicNames(final String host, final String port, final String brokerName) throws Exception {
+        try (final JMXConnector connector = getJMXConnector(host, port)) {
+            JMSServerControl serverControl = serverControlOf(connector, brokerName);
+            return serverControl.getTopicNames();
+        }
+    }
+
     protected JMXConnector getJMXConnector(final String host, final String port) throws IOException {
         return connect(new JMXServiceURL(format(JMX_URL, host, port)), emptyMap());
     }
