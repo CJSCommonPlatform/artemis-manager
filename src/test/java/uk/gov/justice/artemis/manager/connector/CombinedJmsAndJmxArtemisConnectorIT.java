@@ -1,6 +1,7 @@
 package uk.gov.justice.artemis.manager.connector;
 
 import static java.util.Arrays.asList;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -127,5 +128,24 @@ public class CombinedJmsAndJmxArtemisConnectorIT {
         final long removedMessages = combinedArtemisConnector.remove("localhost", "3000", "0.0.0.0", queue, asList(messageData.get(1).getMsgId(), "unknown_id", messageData.get(2).getMsgId()).iterator());
         assertThat(removedMessages, is(2L));
 
+    }
+
+    @Test
+    public void shouldReprocessMessageOntoOriginalQueue() throws Exception {
+        final String queue = "DLQ";
+
+        cleanQueue(queue);
+
+        putInQueue(queue, "{\"key1\":\"value123\"}", "origQueueO1");
+        putInQueue(queue, "{\"key1\":\"valueBB\"}", "origQueueO2");
+
+        final List<MessageData> messageData = combinedArtemisConnector.messagesOf("localhost", "61616", "0.0.0.0", queue);
+
+        final long reprocessedMessages = combinedArtemisConnector.reprocess("localhost", "3000", "0.0.0.0", queue, asList(messageData.get(0).getMsgId(), messageData.get(1).getMsgId()).iterator());
+
+        final List<MessageData> messageDataAfter = combinedArtemisConnector.messagesOf("localhost", "61616", "0.0.0.0", queue);
+
+        assertThat(reprocessedMessages, is(2L));
+        assertThat(messageDataAfter, is(empty()));
     }
 }
