@@ -117,7 +117,7 @@ public class JmxArtemisConnectorIT {
     @Test
     public void shouldReturnListOfQueues() throws Exception {
         final String[] queueNames = jmxArtemisConnector.queueNames("localhost", "3000", "0.0.0.0");
-        assertThat(queueNames, arrayContainingInAnyOrder(new String[] {"DLQ", "ExpiryQueue"}));
+        assertThat(queueNames, arrayContainingInAnyOrder("DLQ", "ExpiryQueue"));
     }
 
     @Test
@@ -128,6 +128,6 @@ public class JmxArtemisConnectorIT {
 
         final String[] topicNames = jmxArtemisConnector.topicNames("localhost", "3000", "0.0.0.0");
 
-        assertThat(topicNames, arrayContainingInAnyOrder(new String[] {"testTopic"}));
+        assertThat(topicNames, arrayContainingInAnyOrder("testTopic"));
     }
 }
