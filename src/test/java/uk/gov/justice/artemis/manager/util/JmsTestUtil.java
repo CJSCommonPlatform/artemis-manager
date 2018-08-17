@@ -146,11 +146,11 @@ public class JmsTestUtil {
         TOPICS.clear();
         QUEUES.clear();
 
+        JMS_SESSION.close();
         JMS_CONNECTION.close();
     }
 
     public static void openJmsConnection() throws JMSException {
-        JMS_CF.createConnection();
         JMS_CONNECTION = JMS_CF.createConnection();
         JMS_SESSION = JMS_CONNECTION.createSession(false, Session.AUTO_ACKNOWLEDGE);
     }

@@ -1,15 +1,19 @@
 package uk.gov.justice.artemis.manager.connector;
 
+import static pl.touk.throwing.ThrowingFunction.unchecked;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.activemq.artemis.api.jms.management.DestinationControl;
+import org.apache.activemq.artemis.api.jms.management.JMSServerControl;
+
 import uk.gov.justice.artemis.manager.connector.jms.JmsManagement;
 import uk.gov.justice.artemis.manager.connector.jms.JmsProcessor;
 import uk.gov.justice.artemis.manager.connector.jmx.JmxManagement;
 import uk.gov.justice.artemis.manager.connector.jmx.JmxProcessor;
 import uk.gov.justice.output.ConsolePrinter;
-
-import java.util.Iterator;
-import java.util.List;
-
-import org.apache.activemq.artemis.api.jms.management.JMSServerControl;
 
 /**
  * reprocess, remove and messagesOf were re-implemented in JMS due to issues with large messages
@@ -43,7 +47,17 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
     }
 
     @Override
+    public Map<String, Long> queueMessageCount(final String host, final String port, final String brokerName, final String[] queueNames) throws Exception {
+        return jmxProcessor.processQueues(host, port, brokerName, queueNames, unchecked(DestinationControl::getMessageCount));
+    }
+
+    @Override
     public String[] topicNames(final String host, final String port, final String brokerName) throws Exception {
         return jmxProcessor.processServerControl(host, port, brokerName, JMSServerControl::getTopicNames);
+    }
+
+    @Override
+    public Map<String, Long> topicMessageCount(final String host, final String port, final String brokerName, final String[] topicNames) throws Exception {
+        return jmxProcessor.processTopics(host, port, brokerName, topicNames, unchecked(DestinationControl::getMessageCount));
     }
 }

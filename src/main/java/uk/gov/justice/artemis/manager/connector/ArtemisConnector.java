@@ -2,6 +2,7 @@ package uk.gov.justice.artemis.manager.connector;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public interface ArtemisConnector {
 
@@ -14,4 +15,8 @@ public interface ArtemisConnector {
     String[] queueNames(final String host, final String port, final String brokerName) throws Exception;
 
     String[] topicNames(final String host, final String port, final String brokerName) throws Exception;
+
+    Map<String, Long> queueMessageCount(final String host, final String port, final String brokerName, final String[] queueNames) throws Exception;
+
+    Map<String, Long> topicMessageCount(final String host, final String port, final String brokerName, final String[] topicNames) throws Exception;
 }
