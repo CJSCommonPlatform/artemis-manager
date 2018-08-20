@@ -2,6 +2,7 @@ package uk.gov.justice.artemis.manager.connector;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -12,18 +13,23 @@ import static uk.gov.justice.artemis.manager.util.JmsTestUtil.cleanTopic;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.closeJmsConnection;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.openJmsConnection;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putInQueue;
+import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putOnTopic;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.jms.JMSException;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 //to run this test from IDE start artemis first by executing ./target/server0/bin/artemis run
 public class JmxArtemisConnectorIT {
 
+    private Logger logger = LoggerFactory.getLogger(JmxArtemisConnectorIT.class);
     private ArtemisConnector jmxArtemisConnector = new JmxArtemisConnector();
 
     @BeforeClass
@@ -111,7 +117,6 @@ public class JmxArtemisConnectorIT {
 
         final long removedMessages = jmxArtemisConnector.remove("localhost", "3000", "0.0.0.0", queue, asList(messageData.get(1).getMsgId(), "unknown_id", messageData.get(2).getMsgId()).iterator());
         assertThat(removedMessages, is(2L));
-
     }
 
     @Test
@@ -129,5 +134,49 @@ public class JmxArtemisConnectorIT {
         final String[] topicNames = jmxArtemisConnector.topicNames("localhost", "3000", "0.0.0.0");
 
         assertThat(topicNames, arrayContainingInAnyOrder("testTopic"));
+    }
+
+    @Test
+    public void shouldReturnQueuesAndCounts() throws Exception {
+        final String queue = "DLQ";
+        final String[] queues = {"DLQ", "ExpiryQueue"};
+
+        try {
+            cleanQueue(queue);
+    
+            putInQueue(queue, "{\"key1\":\"value123\"}", "origQueueO1");
+            putInQueue(queue, "{\"key1\":\"valueBB\"}", "origQueueO2");
+            putInQueue(queue, "{\"key1\":\"valueCC\"}", "origQueueO3");
+    
+            final Map<String,Long> results = jmxArtemisConnector.queueMessageCount("localhost", "3000", "0.0.0.0", queues);
+    
+            assertThat(results.containsKey("DLQ"), is(true));
+            assertThat(results.get("DLQ"),equalTo(3L));
+        } catch ( final Exception e ) {
+            logger.error("exception:", e);
+            throw e;
+        }
+    }
+
+    @Test
+    public void shouldReturnTopicsAndCounts() throws Exception {
+        final String topic = "testTopic";
+        final String[] topics = {topic};
+
+        try {
+            cleanTopic(topic, "testSubscription");
+    
+            putOnTopic(topic, "{\"key1\":\"value123\"}", "origQueueO1");
+            putOnTopic(topic, "{\"key1\":\"valueBB\"}", "origQueueO2");
+            putOnTopic(topic, "{\"key1\":\"valueCC\"}", "origQueueO3");
+    
+            final Map<String,Long> results = jmxArtemisConnector.topicMessageCount("localhost", "3000", "0.0.0.0", topics);
+    
+            assertThat(results.containsKey("testTopic"), is(true));
+            assertThat(results.get("testTopic"),equalTo(3L));
+        } catch ( final Exception e ) {
+            logger.error("exception:", e);
+            throw e;
+        }
     }
 }

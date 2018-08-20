@@ -3,9 +3,11 @@ package uk.gov.justice.output;
 import uk.gov.justice.artemis.manager.connector.MessageData;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
+import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 
 public class ConsolePrinter implements OutputPrinter {
@@ -23,6 +25,22 @@ public class ConsolePrinter implements OutputPrinter {
     @Override
     public void writeStringArray(final String[] items) {
         System.out.println(jsonStringOf(items));
+    }
+
+    private JsonObject toJsonObject(Map.Entry<String, Long> entry, String valueName) {
+        final JsonObjectBuilder builder = Json.createObjectBuilder();
+        builder.add("name", entry.getKey());
+        builder.add(valueName, entry.getValue());
+        return builder.build();
+    }
+
+    @Override
+    public void writeMap(final Map<String, Long> map, String valueName) {
+        final JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
+        map.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(
+            entry -> arrayBuilder.add(this.toJsonObject(entry, valueName))
+        );
+        System.out.println(arrayBuilder.build().toString());
     }
 
     @Override
