@@ -4,7 +4,14 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
 - Added capability to query queue names over JMX
+- Added capability to query topic names over JMX
+- Added capability to query queue messageCount over JMX
+- Added capability to query topic messageCount over JMX
+
+### Changed
+- imported framework-command-cli directly as its no longer supported
 
 ## [2.0.0] - 2017-0-15
 
