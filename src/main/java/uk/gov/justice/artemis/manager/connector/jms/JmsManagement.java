@@ -20,7 +20,7 @@ public class JmsManagement {
     public JmsManagementFunction<List<MessageData>> browseMessages() {
         return queueBrowser -> {
             try {
-                final Enumeration browserEnumeration = queueBrowser.getEnumeration();
+                final Enumeration<?> browserEnumeration = queueBrowser.getEnumeration();
 
                 final ArrayList<MessageData> messages = new ArrayList<>();
 

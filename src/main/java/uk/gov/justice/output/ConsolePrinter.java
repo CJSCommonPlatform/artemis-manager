@@ -2,6 +2,7 @@ package uk.gov.justice.output;
 
 import uk.gov.justice.artemis.manager.connector.MessageData;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +24,7 @@ public class ConsolePrinter implements OutputPrinter {
     }
 
     @Override
-    public void writeStringArray(final String[] items) {
+    public void writeStringCollection(final Collection<String> items) {
         System.out.println(jsonStringOf(items));
     }
 
@@ -70,11 +71,9 @@ public class ConsolePrinter implements OutputPrinter {
         return jsonResponse.build().toString();
     }
 
-    private String jsonStringOf(final String[] items) {
+    private String jsonStringOf(final Collection<String> items) {
         final JsonArrayBuilder jsonResponse = Json.createArrayBuilder();
-        for (String item : items) {
-            jsonResponse.add(item);
-        }
+        items.stream().forEach(jsonResponse::add);
         return jsonResponse.build().toString();
     }
 

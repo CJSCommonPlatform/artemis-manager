@@ -12,13 +12,18 @@ public class Reprocess extends AbstractMsgIdConsumingArtemisCommand implements S
 
     @Override
     public void run(final String[] strings) {
-        long reprocessedMessages = reprocessMessagesOf(singleMessageIdProvided() ? singletonList(msgId).iterator() : new Scanner(System.in));
-        outputPrinter.writeCommandResult("Reprocess message", reprocessedMessages);
+        try {
+            super.setup();
+            long reprocessedMessages = reprocessMessagesOf(singleMessageIdProvided() ? singletonList(msgId).iterator() : new Scanner(System.in));
+            outputPrinter.writeCommandResult("Reprocess message", reprocessedMessages);
+        } catch (final Exception e) {
+            outputPrinter.writeStackTrace(e);
+        }
     }
 
     private long reprocessMessagesOf(final Iterator<String> msgIds) {
         try {
-            return artemisConnector.reprocess(host, port, brokerName, "DLQ", msgIds);
+            return artemisConnector.reprocess("DLQ", msgIds);
         } catch (final Exception exception) {
             outputPrinter.writeStackTrace(exception);
             return 0;

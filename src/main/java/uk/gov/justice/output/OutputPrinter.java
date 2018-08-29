@@ -2,6 +2,7 @@ package uk.gov.justice.output;
 
 import uk.gov.justice.artemis.manager.connector.MessageData;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -21,10 +22,10 @@ public interface OutputPrinter {
     public void writeCommandResult(final String command, final long count);
 
     /**
-     * Writes a list of Strings to the output in JSON Array style
+     * Writes a Collection of Strings to the output in JSON Array style
      * @param items - the list of items to be written
      */
-    public void writeStringArray(final String[] items);
+    public void writeStringCollection(final Collection<String> items);
 
     /**
      * Writes a list of Strings to the output in JSON Array style

@@ -1,7 +1,7 @@
 package uk.gov.justice.artemis.manager.connector;
 
 import static java.util.Arrays.asList;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -15,12 +15,14 @@ import static uk.gov.justice.artemis.manager.util.JmsTestUtil.openJmsConnection;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putInQueue;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putOnTopic;
 
+import java.net.MalformedURLException;
 import java.util.List;
 import java.util.Map;
 
 import javax.jms.JMSException;
 
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -30,7 +32,7 @@ import org.slf4j.LoggerFactory;
 public class JmxArtemisConnectorIT {
 
     private Logger logger = LoggerFactory.getLogger(JmxArtemisConnectorIT.class);
-    private ArtemisConnector jmxArtemisConnector = new JmxArtemisConnector();
+    private ArtemisConnector jmxArtemisConnector;
 
     @BeforeClass
     public static void beforeClass() throws JMSException {
@@ -42,6 +44,20 @@ public class JmxArtemisConnectorIT {
         closeJmsConnection();
     }
 
+    @Before
+    public void setUp() throws MalformedURLException {
+        this.jmxArtemisConnector = new JmxArtemisConnector();
+        this.jmxArtemisConnector.setParameters(
+            asList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi"),
+            "0.0.0.0",
+            null,
+            null,
+            null,
+            null,
+            null
+          );
+    }
+
     @Test
     public void shouldReturnMessagesFromQueue() throws Exception {
         final String queue = "DLQ";
@@ -51,7 +67,7 @@ public class JmxArtemisConnectorIT {
         putInQueue(queue, "{\"key1\":\"value123\"}", "origQueueO1");
         putInQueue(queue, "{\"key1\":\"valueBB\"}", "origQueueO2");
 
-        final List<MessageData> messageData = jmxArtemisConnector.messagesOf("localhost", "3000", "0.0.0.0", queue);
+        final List<MessageData> messageData = jmxArtemisConnector.messagesOf(queue);
         assertThat(messageData, hasSize(2));
         assertThat(messageData.get(0).getMsgId(), not(nullValue()));
         assertThat(messageData.get(0).getOriginalDestination(), is("origQueueO1"));
@@ -72,15 +88,15 @@ public class JmxArtemisConnectorIT {
         putInQueue(queue, "{\"key1\":\"valueBB\"}", "origQueueO2");
         putInQueue(queue, "{\"key1\":\"valueCC\"}", "origQueueO3");
 
-        final List<MessageData> messageData = jmxArtemisConnector.messagesOf("localhost", "3000", "0.0.0.0", queue);
+        final List<MessageData> messageData = jmxArtemisConnector.messagesOf(queue);
         assertThat(messageData, hasSize(3));
 
-        jmxArtemisConnector.remove("localhost", "3000", "0.0.0.0", queue, asList(messageData.get(1).getMsgId(), messageData.get(2).getMsgId()).iterator());
+        jmxArtemisConnector.remove(queue, asList(messageData.get(0).getMsgId(), messageData.get(2).getMsgId()).iterator());
 
-        final List<MessageData> messageDataAfterRemoval = jmxArtemisConnector.messagesOf("localhost", "3000", "0.0.0.0", queue);
+        final List<MessageData> messageDataAfterRemoval = jmxArtemisConnector.messagesOf(queue);
         assertThat(messageDataAfterRemoval, hasSize(1));
 
-        assertThat(messageDataAfterRemoval.get(0).getMsgId(), is(messageData.get(0).getMsgId()));
+        assertThat(messageDataAfterRemoval.get(0).getMsgId(), is(messageData.get(1).getMsgId()));
     }
 
     @Test
@@ -92,12 +108,12 @@ public class JmxArtemisConnectorIT {
         putInQueue(queue, "{\"key1\":\"value123\"}", "origQueueO1");
         putInQueue(queue, "{\"key1\":\"valueBB\"}", "origQueueO2");
 
-        final List<MessageData> messageData = jmxArtemisConnector.messagesOf("localhost", "3000", "0.0.0.0", queue);
+        final List<MessageData> messageData = jmxArtemisConnector.messagesOf(queue);
         assertThat(messageData, hasSize(2));
 
-        jmxArtemisConnector.remove("localhost", "3000", "0.0.0.0", queue, asList("id_does_not_exist_123", messageData.get(1).getMsgId()).iterator());
+        jmxArtemisConnector.remove(queue, asList("id_does_not_exist_123", messageData.get(1).getMsgId()).iterator());
 
-        final List<MessageData> messageDataAfterRemoval = jmxArtemisConnector.messagesOf("localhost", "3000", "0.0.0.0", queue);
+        final List<MessageData> messageDataAfterRemoval = jmxArtemisConnector.messagesOf(queue);
         assertThat(messageDataAfterRemoval, hasSize(1));
 
         assertThat(messageDataAfterRemoval.get(0).getMsgId(), is(messageData.get(0).getMsgId()));
@@ -113,16 +129,16 @@ public class JmxArtemisConnectorIT {
         putInQueue(queue, "{\"key1\":\"valueBB\"}", "origQueueO2");
         putInQueue(queue, "{\"key1\":\"valueCC\"}", "origQueueO3");
 
-        final List<MessageData> messageData = jmxArtemisConnector.messagesOf("localhost", "3000", "0.0.0.0", queue);
+        final List<MessageData> messageData = jmxArtemisConnector.messagesOf(queue);
 
-        final long removedMessages = jmxArtemisConnector.remove("localhost", "3000", "0.0.0.0", queue, asList(messageData.get(1).getMsgId(), "unknown_id", messageData.get(2).getMsgId()).iterator());
+        final long removedMessages = jmxArtemisConnector.remove(queue, asList(messageData.get(1).getMsgId(), "unknown_id", messageData.get(2).getMsgId()).iterator());
         assertThat(removedMessages, is(2L));
     }
 
     @Test
     public void shouldReturnListOfQueues() throws Exception {
-        final String[] queueNames = jmxArtemisConnector.queueNames("localhost", "3000", "0.0.0.0");
-        assertThat(queueNames, arrayContainingInAnyOrder("DLQ", "ExpiryQueue"));
+        final List<String> queueNames = jmxArtemisConnector.queueNames();
+        assertThat(queueNames, contains("DLQ", "ExpiryQueue"));
     }
 
     @Test
@@ -131,15 +147,15 @@ public class JmxArtemisConnectorIT {
 
         cleanTopic(topic, "testSubscription");
 
-        final String[] topicNames = jmxArtemisConnector.topicNames("localhost", "3000", "0.0.0.0");
+        final List<String> topicNames = jmxArtemisConnector.topicNames();
 
-        assertThat(topicNames, arrayContainingInAnyOrder("testTopic"));
+        assertThat(topicNames, contains("testTopic"));
     }
 
     @Test
     public void shouldReturnQueuesAndCounts() throws Exception {
         final String queue = "DLQ";
-        final String[] queues = {"DLQ", "ExpiryQueue"};
+        final List<String> queues = asList("DLQ", "ExpiryQueue");
 
         try {
             cleanQueue(queue);
@@ -148,7 +164,7 @@ public class JmxArtemisConnectorIT {
             putInQueue(queue, "{\"key1\":\"valueBB\"}", "origQueueO2");
             putInQueue(queue, "{\"key1\":\"valueCC\"}", "origQueueO3");
     
-            final Map<String,Long> results = jmxArtemisConnector.queueMessageCount("localhost", "3000", "0.0.0.0", queues);
+            final Map<String,Long> results = jmxArtemisConnector.queueMessageCount(queues);
     
             assertThat(results.containsKey("DLQ"), is(true));
             assertThat(results.get("DLQ"),equalTo(3L));
@@ -161,7 +177,7 @@ public class JmxArtemisConnectorIT {
     @Test
     public void shouldReturnTopicsAndCounts() throws Exception {
         final String topic = "testTopic";
-        final String[] topics = {topic};
+        final List<String> topics = asList(topic);
 
         try {
             cleanTopic(topic, "testSubscription");
@@ -169,9 +185,9 @@ public class JmxArtemisConnectorIT {
             putOnTopic(topic, "{\"key1\":\"value123\"}", "origQueueO1");
             putOnTopic(topic, "{\"key1\":\"valueBB\"}", "origQueueO2");
             putOnTopic(topic, "{\"key1\":\"valueCC\"}", "origQueueO3");
-    
-            final Map<String,Long> results = jmxArtemisConnector.topicMessageCount("localhost", "3000", "0.0.0.0", topics);
-    
+
+            final Map<String,Long> results = jmxArtemisConnector.topicMessageCount(topics);
+
             assertThat(results.containsKey("testTopic"), is(true));
             assertThat(results.get("testTopic"),equalTo(3L));
         } catch ( final Exception e ) {

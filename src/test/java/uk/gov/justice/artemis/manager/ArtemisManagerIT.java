@@ -1,7 +1,6 @@
 package uk.gov.justice.artemis.manager;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.hasSize;
@@ -18,19 +17,20 @@ import java.util.List;
 
 import javax.jms.JMSException;
 
-import com.jayway.jsonpath.JsonPath;
 import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.jayway.jsonpath.JsonPath;
+
 //to run this test from IDE start artemis first by executing ./target/server0/bin/artemis run
 public class ArtemisManagerIT {
 
     private static final String DLQ = "DLQ";
-    private static final String COMMAND_LINE_BROWSE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar browse -host localhost -port 61616 -brokerName 0.0.0.0";
-    private static final String COMMAND_LINE_REPROCESS = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar reprocess -host localhost -port 3000 -brokerName 0.0.0.0";
-    private static final String COMMAND_LINE_REMOVE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName 0.0.0.0";
+    private static final String COMMAND_LINE_BROWSE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar browse -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
+    private static final String COMMAND_LINE_REPROCESS = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar reprocess -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
+    private static final String COMMAND_LINE_REMOVE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar remove -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
 
     @BeforeClass
     public static void beforeClass() throws JMSException {
@@ -64,28 +64,7 @@ public class ArtemisManagerIT {
         assertThat(standardOutput, hasJsonPath("$[1].originalDestination", equalTo("jms.queue.hocuspocus")));
         assertThat(standardOutput, hasJsonPath("$[1].msgContent._metadata.name", equalTo("some.other.name")));
         assertThat(standardOutput, hasJsonPath("$[1].msgContent._metadata.id", equalTo("c97c5b7b-abc3-49d4-96a9-bcd83aa4ea13")));
-
     }
-
-    @Test
-    public void shouldThrowExceptionIfHostMissingWhenBrowsing() throws IOException {
-        assertThat(errorOutputOf("java -jar target/artemis-manager.jar browse  -port 3000 -brokerName 0.0.0.0"),
-                containsString("The following option is required: -host"));
-    }
-
-
-    @Test
-    public void shouldThrowExceptionIfPortMissingWhenBrowsing() throws IOException {
-        assertThat(errorOutputOf("java -jar target/artemis-manager.jar browse -host localhost -brokerName 0.0.0.0"),
-                containsString("The following option is required: -port"));
-    }
-
-    @Test
-    public void shouldThrowExceptionIfBrokerNameMissingWhenBrowsing() throws IOException {
-        assertThat(errorOutputOf("java -jar target/artemis-manager.jar browse -host localhost -port 3000"),
-                containsString("The following option is required: -brokerName"));
-    }
-
 
     @Test
     public void shouldRemoveMessageById() throws Exception {
@@ -104,7 +83,6 @@ public class ArtemisManagerIT {
 
         assertThat(messageDataAfterRemoval, hasJsonPath("$..msgId", hasSize(1)));
         assertThat(messageDataAfterRemoval, hasJsonPath("$[0].msgId", equalTo(msgIds.get(1))));
-
     }
 
     @Test

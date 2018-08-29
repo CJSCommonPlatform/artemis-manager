@@ -20,6 +20,7 @@ public class Bootstrap {
     private Bootstrap() {
         this.commander = new JCommander();
         this.commander.setAcceptUnknownOptions(true);
+        this.commander.setAllowAbbreviatedOptions(true);
     }
 
     public static void main(final String... args) {

@@ -1,6 +1,6 @@
 package uk.gov.justice.framework.tools.command;
 
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -8,10 +8,13 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Iterator;
 
 import org.junit.After;
@@ -23,8 +26,6 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-
-import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
 
 
 @RunWith(MockitoJUnitRunner.class)
@@ -57,23 +58,20 @@ public class RemoveTest {
 
     @Test
     public void shouldInvokeConnectorWithSingleMessageId() throws Exception {
+        removeCommand.jmxURLs = Arrays.asList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
         removeCommand.brokerName = "brokerabc";
-        removeCommand.host = "some.host";
-        removeCommand.port = "1212";
         removeCommand.msgId = "123456";
 
         removeCommand.run(null);
 
-        verify(artemisConnector).remove(eq("some.host"), eq("1212"), eq("brokerabc"), eq("DLQ"), msgIdsIteratorCaptor.capture());
-        assertThat(msgIdsIteratorCaptor.getValue().next(), is("123456"));
-
+        verify(artemisConnector).remove(eq("DLQ"), msgIdsIteratorCaptor.capture());
+        assertThat(msgIdsIteratorCaptor.getValue().next(), equalTo("123456"));
     }
 
     @Test
     public void shouldInvokeConnectorWhenReceivingMultipleMessageIdsOnInput() throws Exception {
+        removeCommand.jmxURLs = Arrays.asList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
         removeCommand.brokerName = "brokerabc";
-        removeCommand.host = "some.host";
-        removeCommand.port = "1212";
 
         final InputStream sysIn = System.in;
         final ByteArrayInputStream in = new ByteArrayInputStream("id1 id2 id3".getBytes());
@@ -81,18 +79,16 @@ public class RemoveTest {
 
         removeCommand.run(null);
         System.setIn(sysIn);
-        verify(artemisConnector).remove(eq("some.host"), eq("1212"), eq("brokerabc"), eq("DLQ"), msgIdsIteratorCaptor.capture());
+        verify(artemisConnector).remove(eq("DLQ"), msgIdsIteratorCaptor.capture());
         final Iterator<String> msgIdsIteratorCaptor = this.msgIdsIteratorCaptor.getValue();
-        assertThat(msgIdsIteratorCaptor.next(), is("id1"));
-        assertThat(msgIdsIteratorCaptor.next(), is("id2"));
-        assertThat(msgIdsIteratorCaptor.next(), is("id3"));
-
+        assertThat(msgIdsIteratorCaptor.next(), equalTo("id1"));
+        assertThat(msgIdsIteratorCaptor.next(), equalTo("id2"));
+        assertThat(msgIdsIteratorCaptor.next(), equalTo("id3"));
     }
 
     @Test
     public void shouldOutputNumnerOfRemovedMessages() throws Exception {
-
-        when(artemisConnector.remove(anyString(), anyString(), anyString(), anyString(), any(Iterator.class))).thenReturn(3l);
+        when(artemisConnector.remove(anyString(), any(Iterator.class))).thenReturn(3l);
 
         final InputStream sysIn = System.in;
         final ByteArrayInputStream in = new ByteArrayInputStream(NOT_USED_BYTES);
@@ -101,9 +97,6 @@ public class RemoveTest {
         removeCommand.run(null);
         System.setIn(sysIn);
 
-        assertThat(outContent.toString(), is("{\"Command\":\"Remove message\",\"Occurrences\":3}\n"));
-
+        assertThat(outContent.toString(), equalTo("{\"Command\":\"Remove message\",\"Occurrences\":3}\n"));
     }
-
-
 }

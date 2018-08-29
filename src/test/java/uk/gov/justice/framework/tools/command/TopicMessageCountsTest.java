@@ -1,12 +1,15 @@
 package uk.gov.justice.framework.tools.command;
 
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
+
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -14,8 +17,6 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-
-import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
 
 
 @RunWith(MockitoJUnitRunner.class)
@@ -29,20 +30,19 @@ public class TopicMessageCountsTest {
 
     @Test
     public void shouldInvokeConnector() throws Exception {
+        topicMessageCounts.jmxURLs = Arrays.asList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
         topicMessageCounts.brokerName = "brokerabc";
-        topicMessageCounts.host = "some.host";
-        topicMessageCounts.port = "1212";
-        final String[] topics = {"topicA", "topicB" };
+        final List<String> topics = Arrays.asList("topicA", "topicB");
         final Map<String, Long> messageCounts = Collections.unmodifiableMap(new HashMap<String, Long>() {
             {
                 put("topicA", 100L);
                 put("topicB", 101L);
             }
         });
-        when(artemisConnector.topicNames(anyString(), anyString(), anyString())).thenReturn(topics);
-        when(artemisConnector.topicMessageCount(anyString(), anyString(), anyString(), eq(topics) )).thenReturn(messageCounts);
+        when(artemisConnector.topicNames()).thenReturn(topics);
+        when(artemisConnector.topicMessageCount(eq(topics))).thenReturn(messageCounts);
 
         topicMessageCounts.run(null);
-        Map<String, Long> results = verify(artemisConnector).topicMessageCount("some.host", "1212", "brokerabc", topics);
+        Map<String, Long> results = verify(artemisConnector).topicMessageCount(topics);
     }
 }

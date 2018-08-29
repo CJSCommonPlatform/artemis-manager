@@ -12,13 +12,18 @@ public class Remove extends AbstractMsgIdConsumingArtemisCommand implements Shel
 
     @Override
     public void run(final String[] strings) {
-        long removedMessages = removeMessagesOf(singleMessageIdProvided() ? singletonList(msgId).iterator() : new Scanner(System.in));
-        outputPrinter.writeCommandResult("Remove message", removedMessages);
+        try {
+          super.setup();
+          long removedMessages = removeMessagesOf(singleMessageIdProvided() ? singletonList(msgId).iterator() : new Scanner(System.in));
+          outputPrinter.writeCommandResult("Remove message", removedMessages);
+        } catch(final Exception e) {
+            outputPrinter.writeStackTrace(e);
+        }
     }
 
     private long removeMessagesOf(final Iterator<String> msgIds) {
         try {
-            return artemisConnector.remove(host, port, brokerName, "DLQ", msgIds);
+            return artemisConnector.remove("DLQ", msgIds);
         } catch (final Exception exception) {
             outputPrinter.writeStackTrace(exception);
             return 0;

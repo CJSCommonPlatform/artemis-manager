@@ -14,6 +14,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Iterator;
 
 import org.junit.After;
@@ -58,22 +59,20 @@ public class ReprocessTest {
 
     @Test
     public void shouldInvokeConnectorWithSingleMessageId() throws Exception {
+        reprocessCommand.jmxURLs = Arrays.asList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
         reprocessCommand.brokerName = "brokerabc";
-        reprocessCommand.host = "some.host";
-        reprocessCommand.port = "1212";
         reprocessCommand.msgId = "123456";
 
         reprocessCommand.run(null);
 
-        verify(artemisConnector).reprocess(eq("some.host"), eq("1212"), eq("brokerabc"), eq("DLQ"), msgIdsIteratorCaptor.capture());
+        verify(artemisConnector).reprocess(eq("DLQ"), msgIdsIteratorCaptor.capture());
         assertThat(msgIdsIteratorCaptor.getValue().next(), is("123456"));
     }
 
     @Test
     public void shouldInvokeConnectorWhenReceivingMultipleMessageIdsOnInput() throws Exception {
+        reprocessCommand.jmxURLs = Arrays.asList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
         reprocessCommand.brokerName = "brokerabc";
-        reprocessCommand.host = "some.host";
-        reprocessCommand.port = "1212";
 
         final InputStream sysIn = System.in;
         final ByteArrayInputStream in = new ByteArrayInputStream("id1 id2 id3".getBytes());
@@ -82,7 +81,7 @@ public class ReprocessTest {
         reprocessCommand.run(null);
         System.setIn(sysIn);
         
-        verify(artemisConnector).reprocess(eq("some.host"), eq("1212"), eq("brokerabc"), eq("DLQ"), msgIdsIteratorCaptor.capture());
+        verify(artemisConnector).reprocess(eq("DLQ"), msgIdsIteratorCaptor.capture());
         final Iterator<String> msgIdsIteratorCaptor = this.msgIdsIteratorCaptor.getValue();
         assertThat(msgIdsIteratorCaptor.next(), is("id1"));
         assertThat(msgIdsIteratorCaptor.next(), is("id2"));
@@ -92,7 +91,7 @@ public class ReprocessTest {
     @Test
     public void shouldOutputNumnerOfReprocessedMessages() throws Exception {
 
-        when(artemisConnector.reprocess(anyString(), anyString(), anyString(), anyString(), any(Iterator.class))).thenReturn(3l);
+        when(artemisConnector.reprocess(anyString(), any(Iterator.class))).thenReturn(3l);
 
         final InputStream sysIn = System.in;
         final ByteArrayInputStream in = new ByteArrayInputStream(NOT_USED_BYTES);
@@ -103,6 +102,4 @@ public class ReprocessTest {
 
         assertThat(outContent.toString(), is("{\"Command\":\"Reprocess message\",\"Occurrences\":3}\n"));
     }
-
-
 }

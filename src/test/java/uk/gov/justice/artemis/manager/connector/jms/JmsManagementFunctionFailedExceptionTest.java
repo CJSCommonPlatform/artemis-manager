@@ -1,6 +1,6 @@
 package uk.gov.justice.artemis.manager.connector.jms;
 
-import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -15,7 +15,7 @@ public class JmsManagementFunctionFailedExceptionTest {
 
         final JmsManagementFunctionFailedException exception = new JmsManagementFunctionFailedException(message, cause);
 
-        assertThat(exception.getMessage(), is(message));
-        assertThat(exception.getCause(), is(cause));
+        assertThat(exception.getMessage(), equalTo(message));
+        assertThat(exception.getCause(), equalTo(cause));
     }
 }

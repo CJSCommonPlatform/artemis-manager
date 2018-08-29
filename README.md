@@ -2,30 +2,47 @@
 
 [![Build Status](https://travis-ci.org/CJSCommonPlatform/artemis-manager.svg?branch=master)](https://travis-ci.org/CJSCommonPlatform/artemis-manager) [![Coverage Status](https://coveralls.io/repos/github/CJSCommonPlatform/artemis-manager/badge.svg?branch=master)](https://coveralls.io/github/CJSCommonPlatform/artemis-manager?branch=master)
 
+## Configuration
+
+Configuration can be supplied in a config file and passed to the application via a '@<config_file_path>' option.
+
+* -jmxUrl: The full JMX url, can be used multiple times for clusters. (default: service:jmx:rmi:///jndi/rmi://localhost:1099/jmxrmi)
+* -brokerName: Name of the broker (default: "default")
+* -jmxUsername: User for JMX (default none)
+* -jmxPassword: Password for JMX (default none)
+* -jmsUrl: The JMS url, you should add the clientID as above. You can also add sslEnabled=true to get SSL capability (default: tcp://localhost:61616?clientID=artemis-manager)
+* -jmsUsername: User for JMS (default none)
+* -jmsPassword: Password for JMS (default none)
+
+A complicated example configuration file might look like:
+
+Assuming two brokers on 192.168.0.10 and 192.168.0.11, with JMX on 1098 and OpenWire on 61616 (but no security)
+
+```
+-jmxUrl service:jmx:rmi:///jndi/rmi://192.168.0.10:1098/jmxrmi
+-jmxUrl service:jmx:rmi:///jndi/rmi://192.168.0.11:1098/jmxrmi
+-jmsUrl tcp://(192.168.0.10:61616,192.168.0.11:61616)?clientID=artemis-manager&sslEnabled=true
+```
+
+In the examples below it is assumed a configuration file of artemis.config has been created like that shown above
 
 ## Browse DLQ
 
-**Note: Browse uses JMS tcp port to connect to the Artemis broker.**
+**Note: Browse uses JMS to connect to the Artemis broker.**
 
-_java -jar artemis-manager.jar browse -host localhost -port 61616 -brokerName default_
-
-* port - JMS tcp port
-* brokerName - name of the broker configured in the broker.xml, use _default_ if no specific broker configuration provided
+`java -jar artemis-manager.jar browse @artemis.config`
 
 ## Remove Message from DLQ
 
 * Remove message by id
 
-**Note: Remove uses JMX port to connect to the Artemis broker.**
+**Note: Remove uses JMX to connect to the Artemis broker.**
 
-_java -jar artemis-manager.jar remove -host localhost -port 3000 -brokerName default -msgId 12d8e63e-c842-11e6-986d-00e1000074d2_
-
-* port - JMX port
-* brokerName - name of the broker configured in the broker.xml, use _default_ if no specific broker configuration provided
+`java -jar artemis-manager.jar remove @artemis.config -msgId 12d8e63e-c842-11e6-986d-00e1000074d2`
 
 * Remove multiple messages (provide list of message ids on input)
 
-_echo msgId1 msgId2 | java -jar artemis-manager.jar remove -host localhost -port 3000 -brokerName default_
+`echo msgId1 msgId2 | java -jar artemis-manager.jar remove`
 
 ## Reprocess Message from DLQ
 
@@ -33,14 +50,11 @@ _echo msgId1 msgId2 | java -jar artemis-manager.jar remove -host localhost -port
 
 **Note: Reprocess uses JMX port to connect to the Artemis broker.**
 
-_java -jar artemis-manager.jar reprocess -host localhost -port 3000 -brokerName default -msgId 12d8e63e-c842-11e6-986d-00e1000074d2_
-
-* port - JMX port
-* brokerName - name of the broker configured in the broker.xml, use _default_ if no specific broker configuration provided
+`java -jar artemis-manager.jar reprocess @artemis.config -msgId 12d8e63e-c842-11e6-986d-00e1000074d2`
 
 * Reprocess multiple messages (provide list of message ids on input)
 
-_echo msgId1 msgId2 | java -jar artemis-manager.jar reprocess -host localhost -port 3000 -brokerName default_
+`echo msgId1 msgId2 | java -jar artemis-manager.jar reprocess @artemis.config`
 
 ## Chaining Commands
 
@@ -48,4 +62,8 @@ _echo msgId1 msgId2 | java -jar artemis-manager.jar reprocess -host localhost -p
 
 This will remove all messages from DLQ that have been originally sent to the queue abracadabra
 
-_java -jar target/artemis-manager.jar browse -host localhost -port 3000 -brokerName default | jgrep originalDestination=jms.queue.abracadabra -s msgId | java -jar target/artemis-manager.jar remove -host localhost -port 3000 -brokerName default_
+```
+java -jar target/artemis-manager.jar browse @artemis.config |\
+ jgrep originalDestination=jms.queue.abracadabra -s msgId |\
+ java -jar target/artemis-manager.jar remove @artemis.config
+```

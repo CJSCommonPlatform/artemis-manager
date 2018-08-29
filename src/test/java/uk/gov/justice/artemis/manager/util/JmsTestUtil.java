@@ -22,7 +22,7 @@ import javax.jms.TopicSubscriber;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 
 public class JmsTestUtil {
-    private static final ConnectionFactory JMS_CF = new ActiveMQConnectionFactory("tcp://localhost:61616?clientID=1234");
+    private static final ConnectionFactory JMS_CF = new ActiveMQConnectionFactory("tcp://localhost:61616?clientID=artemis-manager");
     private static Connection JMS_CONNECTION;
     private static Session JMS_SESSION;
     private static Map<String, Queue> QUEUES = new HashMap<>();
@@ -127,7 +127,7 @@ public class JmsTestUtil {
     }
 
     private static TopicSubscriber subscriberOf(final String topicName, final String subscriptionName) throws JMSException {
-        return SUBSCRIBERS.computeIfAbsent(topicName,  name -> {
+        return SUBSCRIBERS.computeIfAbsent(topicName, name -> {
             try {
                 return JMS_SESSION.createDurableSubscriber(topicOf(name), subscriptionName);
             } catch (JMSException e) {
@@ -135,12 +135,41 @@ public class JmsTestUtil {
             }
         });
     }
-    
+
     public static void closeJmsConnection() throws JMSException {
+        SUBSCRIBERS.values().stream().forEach(
+            s -> {
+                try {
+                    s.close();
+                } catch (JMSException e) {
+                }
+            });
         SUBSCRIBERS.clear();
+        PUBLISHERS.values().stream().forEach(
+            p -> {
+                try {
+                    p.close();
+                } catch (JMSException e) {
+                }
+            });
         PUBLISHERS.clear();
 
+        CONSUMERS.values().stream().forEach(
+            c -> {
+                try {
+                    c.close();
+                } catch (JMSException e) {
+                }
+            });
         CONSUMERS.clear();
+
+        PRODUCERS.values().stream().forEach(
+            p -> {
+                try {
+                    p.close();
+                } catch (JMSException e) {
+                }
+            });
         PRODUCERS.clear();
 
         TOPICS.clear();
