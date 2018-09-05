@@ -8,19 +8,19 @@ import java.util.Map;
 
 public interface ArtemisConnector {
 
-    List<MessageData> messagesOf(final String destinationName) throws Exception;
+    List<MessageData> messagesOf(final String destinationName);
 
-    long remove(final String destinationName, final Iterator<String> msgIds) throws Exception;
+    long remove(final String destinationName, final Iterator<String> msgIds);
 
-    long reprocess(final String destinationName, final Iterator<String> msgIds) throws Exception;
+    long reprocess(final String destinationName, final Iterator<String> msgIds);
 
-    List<String> queueNames() throws Exception;
+    List<String> queueNames();
 
-    List<String> topicNames() throws Exception;
+    List<String> topicNames();
 
-    Map<String, Long> queueMessageCount(final Collection<String> queueNames) throws Exception;
+    Map<String, Long> queueMessageCount(final Collection<String> queueNames);
 
-    Map<String, Long> topicMessageCount(final Collection<String> queueNames) throws Exception;
+    Map<String, Long> topicMessageCount(final Collection<String> queueNames);
 
     void setParameters(final List<String> jmxUrls,
                     final String brokerName,

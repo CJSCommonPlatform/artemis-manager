@@ -14,7 +14,7 @@ public class JmsProcessor {
 
     public <T> T process(ActiveMQJMSConnectionFactory factory,
                     final String destinationName,
-                    final JmsManagementFunction<T> jmsManagementFunction) throws JMSException {
+                    final JmsManagementFunction<T> jmsManagementFunction) {
 
        final Queue queue = ActiveMQJMSClient.createQueue(destinationName);
 
@@ -23,6 +23,8 @@ public class JmsProcessor {
             final QueueBrowser queueBrowser = queueSession.createBrowser(queue)) {
 
            return jmsManagementFunction.apply(queueBrowser);
+       } catch (JMSException e) {
+           throw new JmsProcessorFailureException("Error connecting to queue to apply JMS management function", e);
        }
     }
 }

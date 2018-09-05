@@ -12,7 +12,6 @@ import uk.gov.justice.artemis.manager.connector.jmx.JmxManagement;
 import uk.gov.justice.artemis.manager.connector.jmx.JmxProcessor;
 import uk.gov.justice.output.ConsolePrinter;
 
-import java.net.MalformedURLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -53,12 +52,12 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
                     final String jmxPassword,
                     final String jmsUrl,
                     final String jmsUsername,
-                    final String jmsPassword) throws MalformedURLException {
+                    final String jmsPassword) {
         this.jmxServiceUrls = jmxProcessor.processJmxUrls(jmxUrls);
         this.objectNameBuilder = jmxProcessor.getObjectNameBuilder(brokerName);
 
         if ((jmxUsername != null) && (jmxPassword != null)) {
-            this.jmxEnvironment = new HashMap<String,String[]>();
+            this.jmxEnvironment = new HashMap<>();
             this.jmxEnvironment.put(JMXConnector.CREDENTIALS, new String[]{ jmxUsername, jmxPassword });
         } else {
             this.jmxEnvironment = emptyMap();
@@ -72,45 +71,43 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
     }
 
     @Override
-    public List<MessageData> messagesOf(final String destinationName) throws Exception {
+    public List<MessageData> messagesOf(final String destinationName) {
         return jmsProcessor.process(this.jmsFactory, destinationName, jmsManagement.browseMessages());
     }
 
     @Override
-    public long remove(final String destinationName, final Iterator<String> msgIds) throws Exception {
+    public long remove(final String destinationName, final Iterator<String> msgIds) {
         return jmxProcessor.processQueueControl(this.jmxServiceUrls,
-            this.jmxEnvironment,
-            this.objectNameBuilder,
-            destinationName,
-            jmxManagement.removeMessages(msgIds)).collect(
-                summingLong(Long::longValue));
+                this.jmxEnvironment,
+                this.objectNameBuilder,
+                destinationName,
+                jmxManagement.removeMessages(msgIds)).mapToLong(Long::longValue).sum();
     }
 
     @Override
-    public long reprocess(final String destinationName, final Iterator<String> msgIds) throws Exception {
+    public long reprocess(final String destinationName, final Iterator<String> msgIds) {
         return jmxProcessor.processQueueControl(
-            this.jmxServiceUrls,
-            this.jmxEnvironment,
-            this.objectNameBuilder,
-            destinationName,
-            jmxManagement.reprocessMessages(msgIds)).collect(
-                summingLong(Long::longValue));
+                this.jmxServiceUrls,
+                this.jmxEnvironment,
+                this.objectNameBuilder,
+                destinationName,
+                jmxManagement.reprocessMessages(msgIds)).mapToLong(Long::longValue).sum();
     }
 
     @Override
-    public List<String> queueNames() throws Exception {
+    public List<String> queueNames() {
         return jmxProcessor.processServerControl(
             this.jmxServiceUrls,
             this.jmxEnvironment,
             this.objectNameBuilder,
             JMSServerControl::getQueueNames).flatMap(
-                l -> Arrays.stream(l)).sorted().
+                Arrays::stream).sorted().
                 distinct().collect(toList());
     }
 
 
     @Override
-    public Map<String, Long> queueMessageCount(final Collection<String> queueNames) throws Exception {
+    public Map<String, Long> queueMessageCount(final Collection<String> queueNames) {
         return jmxProcessor.processQueues(this.jmxServiceUrls,
             this.jmxEnvironment,
             this.objectNameBuilder, 
@@ -122,17 +119,17 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
     }
 
     @Override
-    public List<String> topicNames() throws Exception {
+    public List<String> topicNames() {
         return jmxProcessor.processServerControl(this.jmxServiceUrls,
             this.jmxEnvironment,
             this.objectNameBuilder,
             JMSServerControl::getTopicNames).flatMap(
-                l -> Arrays.stream(l)).sorted().
+                Arrays::stream).sorted().
                     distinct().collect(toList());
     }
 
     @Override
-    public Map<String, Long> topicMessageCount(final Collection<String> topicNames) throws Exception {
+    public Map<String, Long> topicMessageCount(final Collection<String> topicNames) {
         return jmxProcessor.processTopics(this.jmxServiceUrls,
             this.jmxEnvironment,
             this.objectNameBuilder, 

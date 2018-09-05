@@ -5,22 +5,23 @@ import uk.gov.justice.artemis.manager.connector.CombinedJmsAndJmxArtemisConnecto
 import uk.gov.justice.output.ConsolePrinter;
 import uk.gov.justice.output.OutputPrinter;
 
-import java.util.Arrays;
+import java.net.MalformedURLException;
 import java.util.List;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.collect.ImmutableList;
 
 abstract class AbstractArtemisCommand {
-    static public final String DEFAULT_JMX_URL = "service:jmx:rmi:///jndi/rmi://localhost:1099/jmxrmi";
-    static public final String DEFAULT_BROKER_NAME = "default";
-    static public final String DEFAULT_JMS_URL = "tcp://localhost:61616?clientID=artemis-manager";
+    public static final String DEFAULT_JMX_URL = "service:jmx:rmi:///jndi/rmi://localhost:1099/jmxrmi";
+    public static final String DEFAULT_BROKER_NAME = "default";
+    public static final String DEFAULT_JMS_URL = "tcp://localhost:61616?clientID=artemis-manager";
 
     final OutputPrinter outputPrinter = new ConsolePrinter();
 
     ArtemisConnector artemisConnector = new CombinedJmsAndJmxArtemisConnector();
 
     @Parameter(names = "-jmxUrl", description = "Full JMX URLs, can be specified mulitple times (default: " + DEFAULT_JMX_URL + ")", variableArity = true)
-    List<String> jmxURLs = Arrays.asList(DEFAULT_JMX_URL);
+    List<String> jmxURLs = ImmutableList.of(DEFAULT_JMX_URL);
  
     @Parameter(names = {"-brokerName", "-jmxBrokerName"}, description = "broker name as specified in broker.xml (default: " + DEFAULT_BROKER_NAME + ")")
     String brokerName = DEFAULT_BROKER_NAME;
@@ -43,7 +44,7 @@ abstract class AbstractArtemisCommand {
     @Parameter(names = "-help", help = true)
     private boolean help;
 
-    public void setup() throws Exception {
+    public void setup() throws MalformedURLException {
         artemisConnector.setParameters(this.jmxURLs,
                             this.brokerName,
                             this.jmxUsername,

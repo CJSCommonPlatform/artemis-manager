@@ -48,13 +48,13 @@ public class JmxProcessor {
                     final Map<String,?> env,
                     final ObjectNameBuilder onb,
                     final String destinationName,
-                    final JmxManagementFunction<T> jmxManagementFunction) throws Exception {
+                    final JmxManagementFunction<T> jmxManagementFunction) {
 
         return serviceUrls.stream().map(s -> {
             try (final JMXConnector connector = getJMXConnector(s, env)) {
                 return processQueueControl(connector, onb, destinationName, jmxManagementFunction);
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                throw new JmxProcessorFailureException("Error while processing queue control", e);
             }});
     }
 
@@ -69,20 +69,20 @@ public class JmxProcessor {
     public <T> Stream<T> processServerControl(final List<JMXServiceURL> serviceUrls,
                     final Map<String, ?> env,
                     final ObjectNameBuilder onb,
-                    final Function<JMSServerControl, T> fn) throws Exception {
+                    final Function<JMSServerControl, T> fn) {
 
         return serviceUrls.stream().map(s -> {
             try (final JMXConnector connector = getJMXConnector(s, env)) {
                 return processServerControl(connector, onb, fn);
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                throw new JmxProcessorFailureException("Error while processing server control", e);
             }});
     }
 
     public <T> Map<String, T> processQueues(final JMXConnector connector,
                     final ObjectNameBuilder onb,
                     final Collection<String> destinations,
-                    final Function<JMSQueueControl, T> fn) throws Exception {
+                    final Function<JMSQueueControl, T> fn) {
         return destinations.stream().collect(toMap(Function.identity(), destination -> {
             try {
                 return processQueueControl(connector, onb, destination, fn);
@@ -96,19 +96,19 @@ public class JmxProcessor {
                     final Map<String, ?> env,
                     final ObjectNameBuilder onb,
                     final Collection<String> destinations,
-                    final Function<JMSQueueControl, T> fn) throws Exception {
+                    final Function<JMSQueueControl, T> fn) {
         return serviceUrls.stream().map(s -> {
             try (final JMXConnector connector = getJMXConnector(s, env)) {
                 return processQueues(connector, onb, destinations, fn);
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                throw new JmxProcessorFailureException("Error while processing queues", e);
             }});
     }
 
     public <T> Map<String, T> processTopics(JMXConnector connector,
                             final ObjectNameBuilder onb,
                             final Collection<String> destinations,
-                            final Function<TopicControl, T> fn) throws Exception {
+                            final Function<TopicControl, T> fn) {
         return destinations.stream().collect(toMap(Function.identity(), destination -> {
             try {
                 return processTopicControl(connector, onb, destination, fn);
@@ -122,12 +122,12 @@ public class JmxProcessor {
                     final Map<String, ?> env,
                     final ObjectNameBuilder onb,
                     final Collection<String> destinations,
-                    final Function<TopicControl, T> fn) throws Exception {
+                    final Function<TopicControl, T> fn) {
         return serviceUrls.stream().map(s -> {
             try (final JMXConnector connector = getJMXConnector(s, env)) {
                 return processTopics(connector, onb, destinations, fn);
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                throw new JmxProcessorFailureException("Error while processing topics", e);
             }});
     }
 
