@@ -79,6 +79,25 @@ public class JmsTestUtil {
     }
 
     /**
+     * Returns the number of messages that were removed from the queue, using a new consumer.
+     *
+     * @param queueName - the name of the queue that is to be cleaned
+     * @return the number of cleaned messages
+     */
+    public static int cleanQueueWithNewConsumer(final String queueName) throws JMSException {
+        JMS_CONNECTION.start();
+        int cleanedMessage = 0;
+        try(final MessageConsumer consumer = JMS_SESSION.createConsumer(queueOf(queueName))) {
+
+            while (consumer.receiveNoWait() != null) {
+                cleanedMessage++;
+            }
+        }
+        JMS_CONNECTION.stop();
+        return cleanedMessage;
+    }
+
+    /**
      * Returns the number of messages that were received from the topic.
      *
      * @param topicName - the name of the topic that is to be cleaned

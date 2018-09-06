@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.List;
 
 import javax.jms.JMSException;
+import javax.jms.MessageConsumer;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;

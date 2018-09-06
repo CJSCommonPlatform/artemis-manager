@@ -1,8 +1,8 @@
 package uk.gov.justice.artemis.manager.connector;
 
 import static java.util.Arrays.asList;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -138,7 +138,7 @@ public class JmxArtemisConnectorIT {
     @Test
     public void shouldReturnListOfQueues() throws Exception {
         final List<String> queueNames = jmxArtemisConnector.queueNames();
-        assertThat(queueNames, contains("DLQ", "ExpiryQueue"));
+        assertThat(queueNames, hasItems("DLQ", "ExpiryQueue"));
     }
 
     @Test
@@ -149,7 +149,7 @@ public class JmxArtemisConnectorIT {
 
         final List<String> topicNames = jmxArtemisConnector.topicNames();
 
-        assertThat(topicNames, contains("testTopic"));
+        assertThat(topicNames, hasItems("testTopic"));
     }
 
     @Test
