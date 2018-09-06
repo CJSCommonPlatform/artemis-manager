@@ -1,16 +1,17 @@
 package uk.gov.justice.framework.tools.command;
 
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
+
+import java.util.Arrays;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-
-import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
 
 
 @RunWith(MockitoJUnitRunner.class)
@@ -24,12 +25,11 @@ public class ListQueuesTest {
 
     @Test
     public void shouldInvokeConnector() throws Exception {
+        listQueuesCommand.jmxURLs = Arrays.asList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
         listQueuesCommand.brokerName = "brokerabc";
-        listQueuesCommand.host = "some.host";
-        listQueuesCommand.port = "1212";
-        when(artemisConnector.queueNames(anyString(), anyString(), anyString())).thenReturn(new String[] {"DLQ", "ExpiryQueue" });
+        when(artemisConnector.queueNames()).thenReturn(Arrays.asList("DLQ", "ExpiryQueue"));
 
         listQueuesCommand.run(null);
-        verify(artemisConnector).queueNames("some.host", "1212", "brokerabc");
+        verify(artemisConnector).queueNames();
     }
 }

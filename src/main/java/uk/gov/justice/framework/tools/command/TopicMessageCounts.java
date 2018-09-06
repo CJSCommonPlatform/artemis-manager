@@ -1,8 +1,9 @@
 package uk.gov.justice.framework.tools.command;
 
-import java.util.Map;
-
 import uk.gov.justice.framework.tools.common.command.ShellCommand;
+
+import java.util.List;
+import java.util.Map;
 
 public class TopicMessageCounts extends AbstractArtemisCommand implements ShellCommand {
 
@@ -10,8 +11,9 @@ public class TopicMessageCounts extends AbstractArtemisCommand implements ShellC
     public void run(final String[] args) {
 
         try {
-            final String[] topics = artemisConnector.topicNames(host, port, brokerName);
-            final Map<String, Long> counts = artemisConnector.topicMessageCount(host, port, brokerName, topics);
+            super.setup();
+            final List<String> topics = artemisConnector.topicNames();
+            final Map<String, Long> counts = artemisConnector.topicMessageCount(topics);
             outputPrinter.writeMap(counts, "messageCount");
         } catch (final Exception exception) {
             outputPrinter.writeStackTrace(exception);

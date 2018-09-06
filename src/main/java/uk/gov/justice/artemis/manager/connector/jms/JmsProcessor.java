@@ -1,7 +1,5 @@
 package uk.gov.justice.artemis.manager.connector.jms;
 
-import static java.lang.String.format;
-
 import javax.jms.JMSException;
 import javax.jms.Queue;
 import javax.jms.QueueBrowser;
@@ -10,25 +8,23 @@ import javax.jms.QueueSession;
 import javax.jms.Session;
 
 import org.apache.activemq.artemis.api.jms.ActiveMQJMSClient;
-import org.apache.activemq.artemis.jms.client.ActiveMQQueueConnectionFactory;
+import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 
 public class JmsProcessor {
 
-    private static final String JMS_URL = "tcp://%s:%s";
+    public <T> T process(ActiveMQJMSConnectionFactory factory,
+                    final String destinationName,
+                    final JmsManagementFunction<T> jmsManagementFunction) {
 
-    public <T> T process(final String host,
-                         final String port,
-                         final String destinationName,
-                         final JmsManagementFunction<T> jmsManagementFunction) throws JMSException {
+       final Queue queue = ActiveMQJMSClient.createQueue(destinationName);
 
-        final Queue queue = ActiveMQJMSClient.createQueue(destinationName);
+       try (final QueueConnection queueConnection = factory.createQueueConnection();
+            final QueueSession queueSession = queueConnection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
+            final QueueBrowser queueBrowser = queueSession.createBrowser(queue)) {
 
-        try (final ActiveMQQueueConnectionFactory connectionFactory = new ActiveMQQueueConnectionFactory(format(JMS_URL, host, port));
-             final QueueConnection queueConnection = connectionFactory.createQueueConnection();
-             final QueueSession queueSession = queueConnection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
-             final QueueBrowser queueBrowser = queueSession.createBrowser(queue)) {
-
-            return jmsManagementFunction.apply(queueBrowser);
-        }
+           return jmsManagementFunction.apply(queueBrowser);
+       } catch (JMSException e) {
+           throw new JmsProcessorFailureException("Error connecting to queue to apply JMS management function", e);
+       }
     }
 }

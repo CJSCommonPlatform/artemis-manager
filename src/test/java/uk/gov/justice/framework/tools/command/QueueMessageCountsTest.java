@@ -1,12 +1,15 @@
 package uk.gov.justice.framework.tools.command;
 
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
+
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -14,8 +17,6 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-
-import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
 
 
 @RunWith(MockitoJUnitRunner.class)
@@ -29,20 +30,19 @@ public class QueueMessageCountsTest {
 
     @Test
     public void shouldInvokeConnector() throws Exception {
+        queueMessageCounts.jmxURLs = Arrays.asList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
         queueMessageCounts.brokerName = "brokerabc";
-        queueMessageCounts.host = "some.host";
-        queueMessageCounts.port = "1212";
-        final String[] queues = {"queueA", "queueB" };
+        final List<String> queues = Arrays.asList("queueA", "queueB");
         final Map<String, Long> messageCounts = Collections.unmodifiableMap(new HashMap<String, Long>() {
             {
                 put("queueA", 100L);
                 put("queueB", 101L);
             }
         });
-        when(artemisConnector.queueNames(anyString(), anyString(), anyString())).thenReturn(queues);
-        when(artemisConnector.queueMessageCount(anyString(), anyString(), anyString(), eq(queues) )).thenReturn(messageCounts);
+        when(artemisConnector.queueNames()).thenReturn(queues);
+        when(artemisConnector.queueMessageCount(eq(queues))).thenReturn(messageCounts);
 
         queueMessageCounts.run(null);
-        verify(artemisConnector).queueMessageCount("some.host", "1212", "brokerabc", queues);
+        verify(artemisConnector).queueMessageCount(queues);
     }
 }

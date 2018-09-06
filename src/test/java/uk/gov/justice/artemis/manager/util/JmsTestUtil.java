@@ -22,7 +22,7 @@ import javax.jms.TopicSubscriber;
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 
 public class JmsTestUtil {
-    private static final ConnectionFactory JMS_CF = new ActiveMQConnectionFactory("tcp://localhost:61616?clientID=1234");
+    private static final ConnectionFactory JMS_CF = new ActiveMQConnectionFactory("tcp://localhost:61616?clientID=artemis-manager");
     private static Connection JMS_CONNECTION;
     private static Session JMS_SESSION;
     private static Map<String, Queue> QUEUES = new HashMap<>();
@@ -79,6 +79,25 @@ public class JmsTestUtil {
     }
 
     /**
+     * Returns the number of messages that were removed from the queue, using a new consumer.
+     *
+     * @param queueName - the name of the queue that is to be cleaned
+     * @return the number of cleaned messages
+     */
+    public static int cleanQueueWithNewConsumer(final String queueName) throws JMSException {
+        JMS_CONNECTION.start();
+        int cleanedMessage = 0;
+        try(final MessageConsumer consumer = JMS_SESSION.createConsumer(queueOf(queueName))) {
+
+            while (consumer.receiveNoWait() != null) {
+                cleanedMessage++;
+            }
+        }
+        JMS_CONNECTION.stop();
+        return cleanedMessage;
+    }
+
+    /**
      * Returns the number of messages that were received from the topic.
      *
      * @param topicName - the name of the topic that is to be cleaned
@@ -127,7 +146,7 @@ public class JmsTestUtil {
     }
 
     private static TopicSubscriber subscriberOf(final String topicName, final String subscriptionName) throws JMSException {
-        return SUBSCRIBERS.computeIfAbsent(topicName,  name -> {
+        return SUBSCRIBERS.computeIfAbsent(topicName, name -> {
             try {
                 return JMS_SESSION.createDurableSubscriber(topicOf(name), subscriptionName);
             } catch (JMSException e) {
@@ -135,12 +154,41 @@ public class JmsTestUtil {
             }
         });
     }
-    
+
     public static void closeJmsConnection() throws JMSException {
+        SUBSCRIBERS.values().stream().forEach(
+            s -> {
+                try {
+                    s.close();
+                } catch (JMSException e) {
+                }
+            });
         SUBSCRIBERS.clear();
+        PUBLISHERS.values().stream().forEach(
+            p -> {
+                try {
+                    p.close();
+                } catch (JMSException e) {
+                }
+            });
         PUBLISHERS.clear();
 
+        CONSUMERS.values().stream().forEach(
+            c -> {
+                try {
+                    c.close();
+                } catch (JMSException e) {
+                }
+            });
         CONSUMERS.clear();
+
+        PRODUCERS.values().stream().forEach(
+            p -> {
+                try {
+                    p.close();
+                } catch (JMSException e) {
+                }
+            });
         PRODUCERS.clear();
 
         TOPICS.clear();
