@@ -4,6 +4,9 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## [3.0.0] - 2018-09-06
+
 ### Added
 - Added capability to query queue names over JMX
 - Added capability to query topic names over JMX
