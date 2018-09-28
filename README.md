@@ -19,9 +19,12 @@ A complicated example configuration file might look like:
 Assuming two brokers on 192.168.0.10 and 192.168.0.11, with JMX on 1098 and OpenWire on 61616 (but no security)
 
 ```
--jmxUrl service:jmx:rmi:///jndi/rmi://192.168.0.10:1098/jmxrmi
--jmxUrl service:jmx:rmi:///jndi/rmi://192.168.0.11:1098/jmxrmi
--jmsUrl tcp://(192.168.0.10:61616,192.168.0.11:61616)?clientID=artemis-manager&sslEnabled=true
+-jmxUrl
+service:jmx:rmi:///jndi/rmi://192.168.0.10:1098/jmxrmi
+-jmxUrl
+service:jmx:rmi:///jndi/rmi://192.168.0.11:1098/jmxrmi
+-jmsUrl
+tcp://(192.168.0.10:61616,192.168.0.11:61616)?clientID=artemis-manager&sslEnabled=true
 ```
 
 In the examples below it is assumed a configuration file of artemis.config has been created like that shown above
