@@ -40,6 +40,13 @@ public class JmsTestUtil {
         producerOf(queueName).send(message);
     }
 
+    public static void putInDeadLetterQueue(final String queueName, final String msgText, final String origAddress, final String origQueue) throws JMSException {
+        TextMessage message = JMS_SESSION.createTextMessage(msgText);
+        message.setStringProperty("_AMQ_ORIG_ADDRESS", "jms.topic." + origAddress);
+        message.setStringProperty("_AMQ_ORIG_QUEUE", "artemis-manager." + origQueue);
+        producerOf(queueName).send(message);
+    }
+
     public static void putInQueue(final String queueName, final InputStream messageInput, final String... origAddress) throws JMSException {
         final Message message = JMS_SESSION.createBytesMessage();
 
@@ -53,11 +60,11 @@ public class JmsTestUtil {
     }
 
     public static void putOnTopic(final String topicName, final String msgText, final String... origAddress) throws JMSException {
-       TextMessage message = JMS_SESSION.createTextMessage(msgText);
-       if (origAddress.length > 0) {
-           message.setStringProperty("_AMQ_ORIG_ADDRESS", origAddress[0]);
-       }
-       publisherOf(topicName).send(message);
+        TextMessage message = JMS_SESSION.createTextMessage(msgText);
+        if (origAddress.length > 0) {
+            message.setStringProperty("_AMQ_ORIG_ADDRESS", origAddress[0]);
+        }
+        publisherOf(topicName).send(message);
     }
 
     /**
@@ -87,7 +94,7 @@ public class JmsTestUtil {
     public static int cleanQueueWithNewConsumer(final String queueName) throws JMSException {
         JMS_CONNECTION.start();
         int cleanedMessage = 0;
-        try(final MessageConsumer consumer = JMS_SESSION.createConsumer(queueOf(queueName))) {
+        try (final MessageConsumer consumer = JMS_SESSION.createConsumer(queueOf(queueName))) {
 
             while (consumer.receiveNoWait() != null) {
                 cleanedMessage++;
@@ -136,7 +143,7 @@ public class JmsTestUtil {
     }
 
     private static MessageProducer publisherOf(final String topicName) throws JMSException {
-        return PUBLISHERS.computeIfAbsent(topicName,  name -> {
+        return PUBLISHERS.computeIfAbsent(topicName, name -> {
             try {
                 return JMS_SESSION.createProducer(topicOf(name));
             } catch (JMSException e) {
@@ -157,38 +164,38 @@ public class JmsTestUtil {
 
     public static void closeJmsConnection() throws JMSException {
         SUBSCRIBERS.values().stream().forEach(
-            s -> {
-                try {
-                    s.close();
-                } catch (JMSException e) {
-                }
-            });
+                s -> {
+                    try {
+                        s.close();
+                    } catch (JMSException e) {
+                    }
+                });
         SUBSCRIBERS.clear();
         PUBLISHERS.values().stream().forEach(
-            p -> {
-                try {
-                    p.close();
-                } catch (JMSException e) {
-                }
-            });
+                p -> {
+                    try {
+                        p.close();
+                    } catch (JMSException e) {
+                    }
+                });
         PUBLISHERS.clear();
 
         CONSUMERS.values().stream().forEach(
-            c -> {
-                try {
-                    c.close();
-                } catch (JMSException e) {
-                }
-            });
+                c -> {
+                    try {
+                        c.close();
+                    } catch (JMSException e) {
+                    }
+                });
         CONSUMERS.clear();
 
         PRODUCERS.values().stream().forEach(
-            p -> {
-                try {
-                    p.close();
-                } catch (JMSException e) {
-                }
-            });
+                p -> {
+                    try {
+                        p.close();
+                    } catch (JMSException e) {
+                    }
+                });
         PRODUCERS.clear();
 
         TOPICS.clear();

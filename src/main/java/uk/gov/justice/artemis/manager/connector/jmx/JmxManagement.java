@@ -7,8 +7,13 @@ import static java.util.stream.Collectors.toList;
 import uk.gov.justice.artemis.manager.connector.MessageData;
 import uk.gov.justice.output.OutputPrinter;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import javax.management.openmbean.CompositeData;
 
@@ -68,11 +73,53 @@ public class JmxManagement {
             while (msgIds.hasNext()) {
                 try {
                     final String nextId = msgIds.next();
-                    if (queueControl.retryMessage(format("ID:%s", nextId))) {
-                        reprocessedMessages++;
-                    } else {
-                        outputPrinter.writeException(new RuntimeException(format("Skipped retrying of message id %s as it does not exist", nextId)));
-                    }
+
+                    final Map<String, Object>[] listMessages = queueControl.listMessages(format("JMSMessageID = 'ID:%s'", nextId));
+
+
+
+//                    final CompositeData[] messages = queueControl.browse("");
+//
+//                    Arrays.stream(messages)
+//                            .filter(compositeData -> filterMessageId(compositeData, nextId))
+//                            .forEach(this::outputMessage);
+//
+//                    final Optional<CompositeData> messageData = Arrays.stream(messages)
+//                            .filter(compositeData -> filterMessageId(compositeData, nextId))
+//                            .findFirst();
+
+//                    final CompositeData messageValues = messageData.get();
+
+                    final Map<String, String> headers = new HashMap<>();
+
+                    headers.put("_AMQ_ORIG_ADDRESS", listMessages[0].get("_AMQ_ORIG_ADDRESS").toString());
+
+//                    queueControl.moveMessage(format("ID:%s", nextId), "DLQ", true);
+
+                    final String messageId = queueControl.sendTextMessage(headers, "");
+
+//                    queueControl.retryMessage(messageId);
+////
+//                    if(messages.length > 1) {
+//                        for (int index = 1; index < messages.length; index++) {
+//                            final String amqOrigQueue = messages[index].get("_AMQ_ORIG_QUEUE").toString();
+//
+//                            queueControl.removeMessages(format("JMSMessageID = 'ID:%s' AND _AMQ_ORIG_QUEUE = '%s'", nextId, amqOrigQueue));
+//                        }
+//                    }
+//
+//                    final CompositeData[] browse = queueControl.browse(format("JMSMessageID = 'ID:%s' AND _AMQ_ORIG_QUEUE = 'artemis-manager.subscription02'", nextId));
+
+//                    final String filter = format("JMSMessageID = 'ID:%s' AND _AMQ_ORIG_QUEUE = 'artemis-manager.subscription02'", nextId);
+//
+//                    queueControl.removeMessages(filter);
+
+//                    if (queueControl.retryMessage(format("ID:%s", nextId))) {
+//                        reprocessedMessages++;
+//                    } else {
+//                        outputPrinter.writeException(new RuntimeException(format("Skipped retrying of message id %s as it does not exist", nextId)));
+//                    }
+
                 } catch (final Exception exception) {
                     outputPrinter.writeException(exception);
                 }
@@ -80,5 +127,17 @@ public class JmxManagement {
 
             return reprocessedMessages;
         };
+    }
+
+    private void outputMessage(final CompositeData compositeData) {
+        final Set<String> keys = compositeData.getCompositeType().keySet();
+
+        keys.forEach(key -> outputPrinter.write(key + " = " + compositeData.get(key).toString()));
+    }
+
+    private boolean filterMessageId(final CompositeData compositeData, final String nextId) {
+        final String jmsMessageID = ((String) compositeData.get("JMSMessageID")).replaceFirst("ID:", "");
+
+        return jmsMessageID.equals(nextId);
     }
 }
