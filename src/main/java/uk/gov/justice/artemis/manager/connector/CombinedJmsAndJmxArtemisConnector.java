@@ -1,6 +1,8 @@
 package uk.gov.justice.artemis.manager.connector;
 
+import static java.lang.String.format;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.list;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.summingLong;
 import static java.util.stream.Collectors.toList;
@@ -8,18 +10,24 @@ import static pl.touk.throwing.ThrowingFunction.unchecked;
 
 import uk.gov.justice.artemis.manager.connector.jms.JmsManagement;
 import uk.gov.justice.artemis.manager.connector.jms.JmsProcessor;
+import uk.gov.justice.artemis.manager.connector.jms.JmsQuadFunction;
 import uk.gov.justice.artemis.manager.connector.jmx.JmxManagement;
 import uk.gov.justice.artemis.manager.connector.jmx.JmxProcessor;
 import uk.gov.justice.output.ConsolePrinter;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
+import javax.jms.JMSException;
+import javax.jms.TextMessage;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXServiceURL;
 
@@ -27,6 +35,7 @@ import org.apache.activemq.artemis.api.core.management.ObjectNameBuilder;
 import org.apache.activemq.artemis.api.jms.management.DestinationControl;
 import org.apache.activemq.artemis.api.jms.management.JMSServerControl;
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
+import org.apache.activemq.artemis.jms.client.ActiveMQTextMessage;
 
 /**
  * reprocess, remove and messagesOf were re-implemented in JMS due to issues with large messages
@@ -40,25 +49,25 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
     private final JmsManagement jmsManagement = new JmsManagement();
 
     private List<JMXServiceURL> jmxServiceUrls;
-    private Map<String,String[]> jmxEnvironment;
+    private Map<String, String[]> jmxEnvironment;
     private ObjectNameBuilder objectNameBuilder;
 
     private ActiveMQJMSConnectionFactory jmsFactory;
 
     @Override
     public void setParameters(final List<String> jmxUrls,
-                    final String brokerName,
-                    final String jmxUsername,
-                    final String jmxPassword,
-                    final String jmsUrl,
-                    final String jmsUsername,
-                    final String jmsPassword) {
+                              final String brokerName,
+                              final String jmxUsername,
+                              final String jmxPassword,
+                              final String jmsUrl,
+                              final String jmsUsername,
+                              final String jmsPassword) {
         this.jmxServiceUrls = jmxProcessor.processJmxUrls(jmxUrls);
         this.objectNameBuilder = jmxProcessor.getObjectNameBuilder(brokerName);
 
         if ((jmxUsername != null) && (jmxPassword != null)) {
             this.jmxEnvironment = new HashMap<>();
-            this.jmxEnvironment.put(JMXConnector.CREDENTIALS, new String[]{ jmxUsername, jmxPassword });
+            this.jmxEnvironment.put(JMXConnector.CREDENTIALS, new String[]{jmxUsername, jmxPassword});
         } else {
             this.jmxEnvironment = emptyMap();
         }
@@ -84,23 +93,102 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
                 jmxManagement.removeMessages(msgIds)).mapToLong(Long::longValue).sum();
     }
 
+//    @Override
+//    public long reprocess(final String destinationName, final Iterator<String> msgIds) {
+//        return jmxProcessor.processQueueControl(
+//                this.jmxServiceUrls,
+//                this.jmxEnvironment,
+//                this.objectNameBuilder,
+//                destinationName,
+//                jmxManagement.reprocessMessages(msgIds)).mapToLong(Long::longValue).sum();
+//    }
+
     @Override
     public long reprocess(final String destinationName, final Iterator<String> msgIds) {
-        return jmxProcessor.processQueueControl(
+
+        return jmxProcessor.processQueueSender(
                 this.jmxServiceUrls,
                 this.jmxEnvironment,
                 this.objectNameBuilder,
+                this.jmsFactory,
                 destinationName,
-                jmxManagement.reprocessMessages(msgIds)).mapToLong(Long::longValue).sum();
+                reprocessMultipleMessages(msgIds));
+    }
+
+    public JmsQuadFunction<Long> reprocessMultipleMessages(final Iterator<String> msgIds) {
+        return (queueSession, queueBrowser, queueSender, queueControl) -> {
+            long reprocessedMessages = 0;
+
+            while (msgIds.hasNext()) {
+                try {
+
+                    final String nextId = msgIds.next();
+
+                    //Get the duplicate messages for an Id
+                    final Enumeration<TextMessage> queueBrowserEnumeration = queueBrowser.getEnumeration();
+                    final List<TextMessage> textMessages = list(queueBrowserEnumeration).stream()
+                            .filter(textMessage -> {
+                                try {
+                                    final String jmsMessageID = textMessage.getJMSMessageID();
+
+                                    return jmsMessageID.equals(format("ID:%s", nextId));
+                                } catch (final JMSException e) {
+                                    throw new RuntimeException("Aaaaaggggh", e);
+                                }
+                            })
+                            .collect(toList());
+
+                    //Remove from DLQ
+                    textMessages.forEach(textMessage -> {
+                        try {
+                            final String filter = format("JMSMessageID = 'ID:%s'", nextId);
+                            queueControl.removeMessages(filter);
+                        } catch (final Exception e) {
+                            throw new RuntimeException("Aaaaaggggh part 2", e);
+                        }
+                    });
+
+                    //Add single message back on DLQ
+                    textMessages.forEach(textMessage -> {
+                        try {
+                            queueSender.send(textMessage);
+                            final boolean retryMessage = queueControl.retryMessage(textMessage.getJMSMessageID());
+
+                            System.out.println("******** = " + retryMessage);
+                        } catch (final Exception e) {
+                            throw new RuntimeException("Uuuuugggh", e);
+                        }
+                    });
+                    
+
+//                    final Enumeration enumeration = queueBrowser.getEnumeration();
+//
+//                    while (enumeration.hasMoreElements()) {
+//                        final ActiveMQTextMessage textMessage = (ActiveMQTextMessage) enumeration.nextElement();
+//
+//                        System.out.println("*************** " + textMessage.getText());
+//                    }
+//
+//                    if (queueControl.retryMessage(format("ID:%s", nextId))) {
+//                        reprocessedMessages++;
+//                    }
+
+                } catch (final Exception exception) {
+                    throw new RuntimeException("Failed completely", exception);
+                }
+            }
+
+            return reprocessedMessages;
+        };
     }
 
     @Override
     public List<String> queueNames() {
         return jmxProcessor.processServerControl(
-            this.jmxServiceUrls,
-            this.jmxEnvironment,
-            this.objectNameBuilder,
-            JMSServerControl::getQueueNames).flatMap(
+                this.jmxServiceUrls,
+                this.jmxEnvironment,
+                this.objectNameBuilder,
+                JMSServerControl::getQueueNames).flatMap(
                 Arrays::stream).sorted().
                 distinct().collect(toList());
     }
@@ -109,34 +197,34 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
     @Override
     public Map<String, Long> queueMessageCount(final Collection<String> queueNames) {
         return jmxProcessor.processQueues(this.jmxServiceUrls,
-            this.jmxEnvironment,
-            this.objectNameBuilder, 
-            queueNames,
-            unchecked(DestinationControl::getMessageCount)).flatMap(
+                this.jmxEnvironment,
+                this.objectNameBuilder,
+                queueNames,
+                unchecked(DestinationControl::getMessageCount)).flatMap(
                 m -> m.entrySet().stream()).collect(
-                    groupingBy(Entry::getKey,
-                    summingLong(Entry::getValue)));
+                groupingBy(Entry::getKey,
+                        summingLong(Entry::getValue)));
     }
 
     @Override
     public List<String> topicNames() {
         return jmxProcessor.processServerControl(this.jmxServiceUrls,
-            this.jmxEnvironment,
-            this.objectNameBuilder,
-            JMSServerControl::getTopicNames).flatMap(
+                this.jmxEnvironment,
+                this.objectNameBuilder,
+                JMSServerControl::getTopicNames).flatMap(
                 Arrays::stream).sorted().
-                    distinct().collect(toList());
+                distinct().collect(toList());
     }
 
     @Override
     public Map<String, Long> topicMessageCount(final Collection<String> topicNames) {
         return jmxProcessor.processTopics(this.jmxServiceUrls,
-            this.jmxEnvironment,
-            this.objectNameBuilder, 
-            topicNames,
-            unchecked(DestinationControl::getMessageCount)).flatMap(
+                this.jmxEnvironment,
+                this.objectNameBuilder,
+                topicNames,
+                unchecked(DestinationControl::getMessageCount)).flatMap(
                 m -> m.entrySet().stream()).collect(
-                    groupingBy(Entry::getKey,
-                    summingLong(Entry::getValue)));
+                groupingBy(Entry::getKey,
+                        summingLong(Entry::getValue)));
     }
 }

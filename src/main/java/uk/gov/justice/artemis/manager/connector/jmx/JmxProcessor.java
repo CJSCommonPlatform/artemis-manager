@@ -6,6 +6,9 @@ import static javax.management.remote.JMXConnectorFactory.connect;
 import static org.apache.activemq.artemis.api.config.ActiveMQDefaultConfiguration.getDefaultJmxDomain;
 import static pl.touk.throwing.ThrowingFunction.unchecked;
 
+import uk.gov.justice.artemis.manager.connector.jms.JmsProcessorFailureException;
+import uk.gov.justice.artemis.manager.connector.jms.JmsQuadFunction;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -14,14 +17,22 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.jms.Queue;
+import javax.jms.QueueBrowser;
+import javax.jms.QueueConnection;
+import javax.jms.QueueSender;
+import javax.jms.QueueSession;
+import javax.jms.Session;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXServiceURL;
 
 import org.apache.activemq.artemis.api.core.management.ObjectNameBuilder;
+import org.apache.activemq.artemis.api.jms.ActiveMQJMSClient;
 import org.apache.activemq.artemis.api.jms.management.JMSQueueControl;
 import org.apache.activemq.artemis.api.jms.management.JMSServerControl;
 import org.apache.activemq.artemis.api.jms.management.TopicControl;
+import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 
 public class JmxProcessor {
 
@@ -34,81 +45,106 @@ public class JmxProcessor {
     }
 
     public <T> T processQueueControl(
-                    final JMXConnector connector,
-                    final ObjectNameBuilder onb,
-                    final String destinationName,
-                    final JmxManagementFunction<T> jmxManagementFunction) throws Exception {
+            final JMXConnector connector,
+            final ObjectNameBuilder onb,
+            final String destinationName,
+            final JmxManagementFunction<T> jmxManagementFunction) throws Exception {
 
         final JMSQueueControl queueControl = queueControlOf(connector, onb, destinationName);
         return jmxManagementFunction.apply(queueControl);
     }
 
+    public <T> T processQueueSender(final List<JMXServiceURL> serviceUrls,
+                                    final Map<String, ?> env,
+                                    final ObjectNameBuilder onb,
+                                    final ActiveMQJMSConnectionFactory factory,
+                                    final String destinationName,
+                                    final JmsQuadFunction<T> jmsQuadFunction) {
+
+        final Queue queue = ActiveMQJMSClient.createQueue(destinationName);
+
+        try (final JMXConnector connector = getJMXConnector(serviceUrls.get(0), env);
+             final QueueConnection queueConnection = factory.createQueueConnection();
+             final QueueSession queueSession = queueConnection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
+             final QueueBrowser queueBrowser = queueSession.createBrowser(queue);
+             final QueueSender queueSender = queueSession.createSender(queue)) {
+
+            final JMSQueueControl queueControl = queueControlOf(connector, onb, destinationName);
+            return jmsQuadFunction.apply(queueSession, queueBrowser, queueSender, queueControl);
+        } catch (final Exception e) {
+            throw new JmsProcessorFailureException("Error connecting to queue to apply JMS management function", e);
+        }
+    }
+
     public <T> Stream<T> processQueueControl(
-                    final List<JMXServiceURL> serviceUrls,
-                    final Map<String,?> env,
-                    final ObjectNameBuilder onb,
-                    final String destinationName,
-                    final JmxManagementFunction<T> jmxManagementFunction) {
+            final List<JMXServiceURL> serviceUrls,
+            final Map<String, ?> env,
+            final ObjectNameBuilder onb,
+            final String destinationName,
+            final JmxManagementFunction<T> jmxManagementFunction) {
 
         return serviceUrls.stream().map(s -> {
             try (final JMXConnector connector = getJMXConnector(s, env)) {
                 return processQueueControl(connector, onb, destinationName, jmxManagementFunction);
             } catch (Exception e) {
                 throw new JmxProcessorFailureException("Error while processing queue control", e);
-            }});
+            }
+        });
     }
 
     public <T> T processServerControl(final JMXConnector connector,
-                    final ObjectNameBuilder onb,
-                    final Function<JMSServerControl, T> fn) throws Exception {
+                                      final ObjectNameBuilder onb,
+                                      final Function<JMSServerControl, T> fn) throws Exception {
 
         final JMSServerControl serverControl = serverControlOf(connector, onb);
         return fn.apply(serverControl);
     }
 
     public <T> Stream<T> processServerControl(final List<JMXServiceURL> serviceUrls,
-                    final Map<String, ?> env,
-                    final ObjectNameBuilder onb,
-                    final Function<JMSServerControl, T> fn) {
+                                              final Map<String, ?> env,
+                                              final ObjectNameBuilder onb,
+                                              final Function<JMSServerControl, T> fn) {
 
         return serviceUrls.stream().map(s -> {
             try (final JMXConnector connector = getJMXConnector(s, env)) {
                 return processServerControl(connector, onb, fn);
             } catch (Exception e) {
                 throw new JmxProcessorFailureException("Error while processing server control", e);
-            }});
+            }
+        });
     }
 
     public <T> Map<String, T> processQueues(final JMXConnector connector,
-                    final ObjectNameBuilder onb,
-                    final Collection<String> destinations,
-                    final Function<JMSQueueControl, T> fn) {
+                                            final ObjectNameBuilder onb,
+                                            final Collection<String> destinations,
+                                            final Function<JMSQueueControl, T> fn) {
         return destinations.stream().collect(toMap(Function.identity(), destination -> {
             try {
                 return processQueueControl(connector, onb, destination, fn);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
-            }));
+        }));
     }
 
     public <T> Stream<Map<String, T>> processQueues(final List<JMXServiceURL> serviceUrls,
-                    final Map<String, ?> env,
-                    final ObjectNameBuilder onb,
-                    final Collection<String> destinations,
-                    final Function<JMSQueueControl, T> fn) {
+                                                    final Map<String, ?> env,
+                                                    final ObjectNameBuilder onb,
+                                                    final Collection<String> destinations,
+                                                    final Function<JMSQueueControl, T> fn) {
         return serviceUrls.stream().map(s -> {
             try (final JMXConnector connector = getJMXConnector(s, env)) {
                 return processQueues(connector, onb, destinations, fn);
             } catch (Exception e) {
                 throw new JmxProcessorFailureException("Error while processing queues", e);
-            }});
+            }
+        });
     }
 
     public <T> Map<String, T> processTopics(JMXConnector connector,
-                            final ObjectNameBuilder onb,
-                            final Collection<String> destinations,
-                            final Function<TopicControl, T> fn) {
+                                            final ObjectNameBuilder onb,
+                                            final Collection<String> destinations,
+                                            final Function<TopicControl, T> fn) {
         return destinations.stream().collect(toMap(Function.identity(), destination -> {
             try {
                 return processTopicControl(connector, onb, destination, fn);
@@ -119,16 +155,17 @@ public class JmxProcessor {
     }
 
     public <T> Stream<Map<String, T>> processTopics(final List<JMXServiceURL> serviceUrls,
-                    final Map<String, ?> env,
-                    final ObjectNameBuilder onb,
-                    final Collection<String> destinations,
-                    final Function<TopicControl, T> fn) {
+                                                    final Map<String, ?> env,
+                                                    final ObjectNameBuilder onb,
+                                                    final Collection<String> destinations,
+                                                    final Function<TopicControl, T> fn) {
         return serviceUrls.stream().map(s -> {
             try (final JMXConnector connector = getJMXConnector(s, env)) {
                 return processTopics(connector, onb, destinations, fn);
             } catch (Exception e) {
                 throw new JmxProcessorFailureException("Error while processing topics", e);
-            }});
+            }
+        });
     }
 
     private JMXConnector getJMXConnector(final JMXServiceURL jmxServiceUrl, final Map<String, ?> env) throws IOException {
@@ -151,9 +188,9 @@ public class JmxProcessor {
     }
 
     private <T> T processQueueControl(final JMXConnector connector,
-                    final ObjectNameBuilder onb,
-                    final String destination,
-                    final Function<JMSQueueControl, T> fn) throws Exception {
+                                      final ObjectNameBuilder onb,
+                                      final String destination,
+                                      final Function<JMSQueueControl, T> fn) throws Exception {
         final JMSQueueControl queueControl = queueControlOf(connector, onb, destination);
         return fn.apply(queueControl);
     }
