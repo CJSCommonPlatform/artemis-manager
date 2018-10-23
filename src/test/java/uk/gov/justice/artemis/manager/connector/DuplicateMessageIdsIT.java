@@ -14,8 +14,6 @@ import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putInDeadLetterQue
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putInQueue;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putOnTopic;
 
-import uk.gov.justice.artemis.manager.util.JmsTestUtil;
-
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +39,7 @@ import org.junit.Test;
  */
 public class DuplicateMessageIdsIT {
 
-    private ArtemisConnector combinedArtemisConnector;
+    private ArtemisConnector artemisConnector;
 
     @BeforeClass
     public static void beforeClass() throws JMSException {
@@ -55,8 +53,8 @@ public class DuplicateMessageIdsIT {
 
     @Before
     public void setUp() throws MalformedURLException {
-        this.combinedArtemisConnector = new CombinedJmsAndJmxArtemisConnector();
-        this.combinedArtemisConnector.setParameters(
+        this.artemisConnector = new MultipleIdReprocessorArtemisConnector();
+        this.artemisConnector.setParameters(
                 ImmutableList.of("service:jmx:rmi://localhost:3000/jndi/rmi://localhost:3000/jmxrmi"),
                 "0.0.0.0",
                 "guest",
@@ -85,7 +83,7 @@ public class DuplicateMessageIdsIT {
 
         Thread.sleep(5000L);
 
-        final List<MessageData> messageData = combinedArtemisConnector.messagesOf(dlq);
+        final List<MessageData> messageData = artemisConnector.messagesOf(dlq);
 
         messageData.forEach(message -> System.out.println("ID = " + message.getMsgId() + "\n original destination = " + message.getOriginalDestination() + "\n content = " + message.getMsgContent()));
 
@@ -99,11 +97,11 @@ public class DuplicateMessageIdsIT {
 
         Thread.sleep(1000L);
 
-        final long reprocessedMessages = combinedArtemisConnector.reprocess(dlq, singletonList(messageData.get(0).getMsgId()).iterator());
+        final long reprocessedMessages = artemisConnector.reprocess(dlq, singletonList(messageData.get(0).getMsgId()).iterator());
 
         Thread.sleep(10000L);
 
-        final List<MessageData> messageDataAfter = combinedArtemisConnector.messagesOf(dlq);
+        final List<MessageData> messageDataAfter = artemisConnector.messagesOf(dlq);
 
 //        assertThat(reprocessedMessages, is(2L));
         assertThat(messageDataAfter, is(empty()));
@@ -127,7 +125,7 @@ public class DuplicateMessageIdsIT {
         putInDeadLetterQueue(dlq, "{\"key1\":\"value123\"}", topicName, subscription_1);
         putInDeadLetterQueue(dlq, "{\"key1\":\"value123\"}", topicName, subscription_2);
 
-        final List<MessageData> messageData = combinedArtemisConnector.messagesOf(dlq);
+        final List<MessageData> messageData = artemisConnector.messagesOf(dlq);
 
         messageData.forEach(message -> System.out.println("ID = " + message.getMsgId() + "\n original destination = " + message.getOriginalDestination() + "\n content = " + message.getMsgContent()));
 
@@ -141,11 +139,11 @@ public class DuplicateMessageIdsIT {
 
         Thread.sleep(1000L);
 
-        final long reprocessedMessages = combinedArtemisConnector.reprocess(dlq, singletonList(messageData.get(0).getMsgId()).iterator());
+        final long reprocessedMessages = artemisConnector.reprocess(dlq, singletonList(messageData.get(0).getMsgId()).iterator());
 
         Thread.sleep(10000L);
 
-        final List<MessageData> messageDataAfter = combinedArtemisConnector.messagesOf(dlq);
+        final List<MessageData> messageDataAfter = artemisConnector.messagesOf(dlq);
 
 //        assertThat(reprocessedMessages, is(1L));
         assertThat(messageDataAfter.size(), is(2));

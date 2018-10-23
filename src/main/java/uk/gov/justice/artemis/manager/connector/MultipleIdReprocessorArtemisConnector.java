@@ -6,6 +6,8 @@ import static java.util.stream.Collectors.summingLong;
 import static java.util.stream.Collectors.toList;
 import static pl.touk.throwing.ThrowingFunction.unchecked;
 
+import uk.gov.justice.artemis.manager.connector.combined.CombinedManagement;
+import uk.gov.justice.artemis.manager.connector.combined.CombinedProcessor;
 import uk.gov.justice.artemis.manager.connector.jms.JmsManagement;
 import uk.gov.justice.artemis.manager.connector.jms.JmsProcessor;
 import uk.gov.justice.artemis.manager.connector.jmx.JmxManagement;
@@ -18,7 +20,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXServiceURL;
@@ -28,16 +29,14 @@ import org.apache.activemq.artemis.api.jms.management.DestinationControl;
 import org.apache.activemq.artemis.api.jms.management.JMSServerControl;
 import org.apache.activemq.artemis.jms.client.ActiveMQJMSConnectionFactory;
 
-/**
- * reprocess, remove and messagesOf were re-implemented in JMS due to issues with large messages
- * over JMX.
- */
-public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
+public class MultipleIdReprocessorArtemisConnector implements ArtemisConnector {
 
     private final JmxProcessor jmxProcessor = new JmxProcessor();
     private final JmxManagement jmxManagement = new JmxManagement(new ConsolePrinter());
     private final JmsProcessor jmsProcessor = new JmsProcessor();
     private final JmsManagement jmsManagement = new JmsManagement();
+    private final CombinedProcessor combinedProcessor = new CombinedProcessor();
+    private final CombinedManagement combinedManagement = new CombinedManagement();
 
     private List<JMXServiceURL> jmxServiceUrls;
     private Map<String, String[]> jmxEnvironment;
@@ -86,12 +85,14 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
 
     @Override
     public long reprocess(final String destinationName, final Iterator<String> msgIds) {
-        return jmxProcessor.processQueueControl(
+
+        return combinedProcessor.processQueueSender(
                 this.jmxServiceUrls,
                 this.jmxEnvironment,
                 this.objectNameBuilder,
+                this.jmsFactory,
                 destinationName,
-                jmxManagement.reprocessMessages(msgIds)).mapToLong(Long::longValue).sum();
+                combinedManagement.reprocessMultipleMessages(msgIds));
     }
 
     @Override
@@ -105,6 +106,7 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
                 distinct().collect(toList());
     }
 
+
     @Override
     public Map<String, Long> queueMessageCount(final Collection<String> queueNames) {
         return jmxProcessor.processQueues(this.jmxServiceUrls,
@@ -113,8 +115,8 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
                 queueNames,
                 unchecked(DestinationControl::getMessageCount)).flatMap(
                 m -> m.entrySet().stream()).collect(
-                groupingBy(Entry::getKey,
-                        summingLong(Entry::getValue)));
+                groupingBy(Map.Entry::getKey,
+                        summingLong(Map.Entry::getValue)));
     }
 
     @Override
@@ -135,7 +137,7 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
                 topicNames,
                 unchecked(DestinationControl::getMessageCount)).flatMap(
                 m -> m.entrySet().stream()).collect(
-                groupingBy(Entry::getKey,
-                        summingLong(Entry::getValue)));
+                groupingBy(Map.Entry::getKey,
+                        summingLong(Map.Entry::getValue)));
     }
 }
