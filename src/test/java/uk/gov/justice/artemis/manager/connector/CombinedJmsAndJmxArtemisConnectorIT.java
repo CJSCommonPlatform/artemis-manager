@@ -172,6 +172,25 @@ public class CombinedJmsAndJmxArtemisConnectorIT {
     }
 
     @Test
+    public void shouldReprocessAllMessageOntoOriginalQueue() throws Exception {
+        final String queue = "DLQ";
+
+        cleanQueue(queue);
+
+        putInQueue(queue, "{\"key1\":\"value123\"}", "origQueueO1");
+        putInQueue(queue, "{\"key1\":\"valueBB\"}", "origQueueO2");
+
+        final List<MessageData> messageData = combinedArtemisConnector.messagesOf(queue);
+
+        final long reprocessedMessages = combinedArtemisConnector.reprocessAll(queue);
+
+        final List<MessageData> messageDataAfter = combinedArtemisConnector.messagesOf(queue);
+
+        assertThat(reprocessedMessages, is(2L));
+        assertThat(messageDataAfter, is(empty()));
+    }
+
+    @Test
     public void shouldReturnListOfQueues() throws Exception {
         final List<String> queueNames = combinedArtemisConnector.queueNames();
         assertThat(queueNames, hasItems("DLQ", "ExpiryQueue"));

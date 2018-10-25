@@ -94,6 +94,18 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
                 jmxManagement.reprocessMessages(msgIds)).mapToLong(Long::longValue).sum();
     }
 
+
+    @Override
+    public int reprocessAll(final String destinationName) {
+        return jmxProcessor.processQueueControl(
+                this.jmxServiceUrls,
+                this.jmxEnvironment,
+                this.objectNameBuilder,
+                destinationName,
+                jmxManagement.reprocessAllMessages()).mapToInt(Integer::intValue).sum();
+    }
+
+
     @Override
     public List<String> queueNames() {
         return jmxProcessor.processServerControl(

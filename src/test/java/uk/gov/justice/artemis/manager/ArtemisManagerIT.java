@@ -16,14 +16,12 @@ import java.io.IOException;
 import java.util.List;
 
 import javax.jms.JMSException;
-import javax.jms.MessageConsumer;
 
+import com.jayway.jsonpath.JsonPath;
 import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.jayway.jsonpath.JsonPath;
 
 //to run this test from IDE start artemis first by executing ./target/server0/bin/artemis run
 public class ArtemisManagerIT {

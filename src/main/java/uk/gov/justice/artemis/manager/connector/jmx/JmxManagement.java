@@ -81,4 +81,17 @@ public class JmxManagement {
             return reprocessedMessages;
         };
     }
+
+
+    public JmxManagementFunction<Integer> reprocessAllMessages() {
+        return queueControl -> {
+            int reprocessedMessageCount = 0;
+            try {
+                reprocessedMessageCount = queueControl.retryMessages();
+            } catch (final Exception exception) {
+                outputPrinter.writeException(exception);
+            }
+            return reprocessedMessageCount;
+        };
+    }
 }
