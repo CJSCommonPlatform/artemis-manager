@@ -83,6 +83,16 @@ public class JmxArtemisConnector implements ArtemisConnector {
     }
 
     @Override
+    public int reprocessAll(final String destinationName) {
+        return jmxProcessor.processQueueControl(
+                this.jmxServiceUrls,
+                this.jmxEnvironment,
+                this.objectNameBuilder,
+                destinationName,
+                jmxManagement.reprocessAllMessages()).mapToInt(Integer::intValue).sum();
+    }
+
+    @Override
     public List<String> queueNames() {
         return jmxProcessor.processServerControl(
             this.jmxServiceUrls,

@@ -35,6 +35,19 @@ In the examples below it is assumed a configuration file of artemis.config has b
 
 `java -jar artemis-manager.jar browse @artemis.config`
 
+## List Queues
+
+**Note: ListQueues uses JMS to connect to the Artemis broker.**
+
+`java -jar artemis-manager.jar listqueues @artemis.config`
+
+## List Topics
+
+**Note: ListTopics uses JMS to connect to the Artemis broker.**
+
+`java -jar artemis-manager.jar listtopics @artemis.config`
+
+
 ## Remove Message from DLQ
 
 * Remove message by id
@@ -58,6 +71,17 @@ In the examples below it is assumed a configuration file of artemis.config has b
 * Reprocess multiple messages (provide list of message ids on input)
 
 `echo msgId1 msgId2 | java -jar artemis-manager.jar reprocess @artemis.config`
+
+## Reprocess All Messages from DLQ
+
+* Reprocess all message on DLQ
+
+***This command will reprocess ALL messages on the DLQ***
+
+**Note: ReprocessAll uses JMX port to connect to the Artemis broker.**
+
+`java -jar artemis-manager.jar reprocessall @artemis.config -msgId 12d8e63e-c842-11e6-986d-00e1000074d2`
+
 
 ## Chaining Commands
 

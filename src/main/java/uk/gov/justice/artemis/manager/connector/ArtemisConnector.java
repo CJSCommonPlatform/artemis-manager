@@ -14,6 +14,8 @@ public interface ArtemisConnector {
 
     long reprocess(final String destinationName, final Iterator<String> msgIds);
 
+    int reprocessAll(final String destinationName);
+
     List<String> queueNames();
 
     List<String> topicNames();

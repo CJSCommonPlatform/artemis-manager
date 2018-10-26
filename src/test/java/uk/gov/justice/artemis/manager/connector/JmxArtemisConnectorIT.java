@@ -144,11 +144,8 @@ public class JmxArtemisConnectorIT {
     @Test
     public void shouldReturnListOfTopics() throws Exception {
         final String topic = "testTopic";
-
         cleanTopic(topic, "testSubscription");
-
         final List<String> topicNames = jmxArtemisConnector.topicNames();
-
         assertThat(topicNames, hasItems("testTopic"));
     }
 

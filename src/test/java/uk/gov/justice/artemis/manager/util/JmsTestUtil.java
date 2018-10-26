@@ -53,11 +53,11 @@ public class JmsTestUtil {
     }
 
     public static void putOnTopic(final String topicName, final String msgText, final String... origAddress) throws JMSException {
-       TextMessage message = JMS_SESSION.createTextMessage(msgText);
-       if (origAddress.length > 0) {
-           message.setStringProperty("_AMQ_ORIG_ADDRESS", origAddress[0]);
-       }
-       publisherOf(topicName).send(message);
+        TextMessage message = JMS_SESSION.createTextMessage(msgText);
+        if (origAddress.length > 0) {
+            message.setStringProperty("_AMQ_ORIG_ADDRESS", origAddress[0]);
+        }
+        publisherOf(topicName).send(message);
     }
 
     /**
@@ -87,7 +87,7 @@ public class JmsTestUtil {
     public static int cleanQueueWithNewConsumer(final String queueName) throws JMSException {
         JMS_CONNECTION.start();
         int cleanedMessage = 0;
-        try(final MessageConsumer consumer = JMS_SESSION.createConsumer(queueOf(queueName))) {
+        try (final MessageConsumer consumer = JMS_SESSION.createConsumer(queueOf(queueName))) {
 
             while (consumer.receiveNoWait() != null) {
                 cleanedMessage++;
@@ -136,7 +136,7 @@ public class JmsTestUtil {
     }
 
     private static MessageProducer publisherOf(final String topicName) throws JMSException {
-        return PUBLISHERS.computeIfAbsent(topicName,  name -> {
+        return PUBLISHERS.computeIfAbsent(topicName, name -> {
             try {
                 return JMS_SESSION.createProducer(topicOf(name));
             } catch (JMSException e) {
@@ -157,38 +157,38 @@ public class JmsTestUtil {
 
     public static void closeJmsConnection() throws JMSException {
         SUBSCRIBERS.values().stream().forEach(
-            s -> {
-                try {
-                    s.close();
-                } catch (JMSException e) {
-                }
-            });
+                s -> {
+                    try {
+                        s.close();
+                    } catch (JMSException e) {
+                    }
+                });
         SUBSCRIBERS.clear();
         PUBLISHERS.values().stream().forEach(
-            p -> {
-                try {
-                    p.close();
-                } catch (JMSException e) {
-                }
-            });
+                p -> {
+                    try {
+                        p.close();
+                    } catch (JMSException e) {
+                    }
+                });
         PUBLISHERS.clear();
 
         CONSUMERS.values().stream().forEach(
-            c -> {
-                try {
-                    c.close();
-                } catch (JMSException e) {
-                }
-            });
+                c -> {
+                    try {
+                        c.close();
+                    } catch (JMSException e) {
+                    }
+                });
         CONSUMERS.clear();
 
         PRODUCERS.values().stream().forEach(
-            p -> {
-                try {
-                    p.close();
-                } catch (JMSException e) {
-                }
-            });
+                p -> {
+                    try {
+                        p.close();
+                    } catch (JMSException e) {
+                    }
+                });
         PRODUCERS.clear();
 
         TOPICS.clear();
@@ -206,6 +206,7 @@ public class JmsTestUtil {
     private static Queue queueOf(final String queueName) {
         return QUEUES.computeIfAbsent(queueName, name -> createQueue(queueName));
     }
+
 
     private static Topic topicOf(final String topicName) {
         return TOPICS.computeIfAbsent(topicName, name -> createTopic(topicName));
