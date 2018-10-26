@@ -80,7 +80,7 @@ In the examples below it is assumed a configuration file of artemis.config has b
 
 **Note: ReprocessAll uses JMX port to connect to the Artemis broker.**
 
-`java -jar artemis-manager.jar reprocessall @artemis.config -msgId 12d8e63e-c842-11e6-986d-00e1000074d2`
+`java -jar artemis-manager.jar reprocessall @artemis.config
 
 
 ## Chaining Commands
