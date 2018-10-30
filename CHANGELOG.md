@@ -5,6 +5,11 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ## [Unreleased]
 
+## [3.1.0] - 2018-10-30
+
+### Added
+- Added capability to submit a _`reprocess all`_ command to the Artemis broker, to retry all current messages in the DLQ. 
+
 ## [3.0.0] - 2018-09-06
 
 ### Added
