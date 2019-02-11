@@ -5,6 +5,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ## [Unreleased]
 
+## [3.2.0] - 2019-02-11
+
 ###Added
 - Output of consumer name so that it's easy to see where the DLQ message was going to
 
