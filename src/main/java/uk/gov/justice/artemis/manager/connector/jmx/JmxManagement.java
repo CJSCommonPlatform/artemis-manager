@@ -17,6 +17,8 @@ public class JmxManagement {
     private static final String JMS_MESSAGE_ID = "JMSMessageID";
     private static final String ORIGINAL_DESTINATION = "OriginalDestination";
     private static final String TEXT = "Text";
+    private static final String PROPERTIES_TEXT = "PropertiesText";
+    private static final String CONSUMER = "_AMQ_ORIG_QUEUE";
     private final OutputPrinter outputPrinter;
 
     public JmxManagement(final OutputPrinter outputPrinter) {
@@ -33,8 +35,10 @@ public class JmxManagement {
                             final String jmsMessageId = String.valueOf(message.get(JMS_MESSAGE_ID)).replaceFirst("ID:", "");
                             final String originalDestination = String.valueOf(message.get(ORIGINAL_DESTINATION));
                             final String text = String.valueOf(message.get(TEXT));
+                            final String consumer = stream(String.valueOf(message.get(PROPERTIES_TEXT)).split(","))
+                                            .filter(e -> e.contains(CONSUMER)).findFirst().get().replaceFirst(CONSUMER + "=", "").trim();
 
-                            return new MessageData(jmsMessageId, originalDestination, text);
+                            return new MessageData(jmsMessageId, originalDestination, text, consumer);
                         })
                         .collect(toList());
 

@@ -9,12 +9,13 @@
         <artifactId>maven-parent-pom</artifactId>
         <version>1.7.1</version>
     </parent>
+
     <properties>
+        <cpp.repo.name>artemis-manager</cpp.repo.name>
         <framework-tools-command.version>2.0.0</framework-tools-command.version>
         <artemis.home>${project.build.directory}/apache-artemis-${artemis.version}</artemis.home>
         <artemis.version>1.5.6</artemis.version>
         <slf4j-version>1.7.10</slf4j-version>
-        <cpp.repo.name>artemis-manager</cpp.repo.name>
         <throwing-function.version>1.3</throwing-function.version>
         <jcommander.version>1.48</jcommander.version>
     </properties>
