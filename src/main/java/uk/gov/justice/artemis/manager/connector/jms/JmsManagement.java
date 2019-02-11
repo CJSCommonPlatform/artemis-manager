@@ -1,5 +1,7 @@
 package uk.gov.justice.artemis.manager.connector.jms;
 
+import static java.util.Arrays.stream;
+
 import uk.gov.justice.artemis.manager.connector.MessageData;
 
 import java.util.ArrayList;
@@ -16,6 +18,7 @@ public class JmsManagement {
     private static final String ID_PREFIX = "ID:";
     private static final String BLANK = "";
     private static final String UNSUPPORTED_MESSAGE_CONTENT = "{\"error\": \"Unsupported message content\"}";
+    private static final String CONSUMER = "_AMQ_ORIG_QUEUE";
 
     public JmsManagementFunction<List<MessageData>> browseMessages() {
         return queueBrowser -> {
@@ -29,6 +32,7 @@ public class JmsManagement {
 
                     final String jmsMessageID = message.getJMSMessageID().replaceFirst(ID_PREFIX, BLANK);
                     final String originalDestination = message.getStringProperty(JMS_ORIGINAL_DESTINATION);
+                    final String consumer = message.getStringProperty(CONSUMER);
                     final String text;
 
                     if (message instanceof TextMessage) {
@@ -38,7 +42,7 @@ public class JmsManagement {
                         text = UNSUPPORTED_MESSAGE_CONTENT;
                     }
 
-                    messages.add(new MessageData(jmsMessageID, originalDestination, text));
+                    messages.add(new MessageData(jmsMessageID, originalDestination, text, consumer));
                 }
 
                 return messages;

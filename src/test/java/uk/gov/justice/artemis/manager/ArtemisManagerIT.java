@@ -45,8 +45,8 @@ public class ArtemisManagerIT {
     public void shouldBrowseMessagesInDLQ() throws Exception {
         cleanQueue(DLQ);
 
-        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\",\"id\":\"c97c5b7b-abc3-49d4-96a9-bcd83aa4ea12\"}}", "jms.queue.abracadabra");
-        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\",\"id\":\"c97c5b7b-abc3-49d4-96a9-bcd83aa4ea13\"}}", "jms.queue.hocuspocus");
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\",\"id\":\"c97c5b7b-abc3-49d4-96a9-bcd83aa4ea12\"}}", "consumer1", "jms.queue.abracadabra");
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\",\"id\":\"c97c5b7b-abc3-49d4-96a9-bcd83aa4ea13\"}}", "consumer2", "jms.queue.hocuspocus");
 
         final Output output = execute(COMMAND_LINE_BROWSE);
         assertThat(output.errorOutput, isEmptyString());
@@ -58,11 +58,13 @@ public class ArtemisManagerIT {
         assertThat(standardOutput, hasJsonPath("$[0].originalDestination", equalTo("jms.queue.abracadabra")));
         assertThat(standardOutput, hasJsonPath("$[0].msgContent._metadata.name", equalTo("some.name")));
         assertThat(standardOutput, hasJsonPath("$[0].msgContent._metadata.id", equalTo("c97c5b7b-abc3-49d4-96a9-bcd83aa4ea12")));
+        assertThat(standardOutput, hasJsonPath("$[0].consumer", equalTo("consumer1")));
 
         assertThat(standardOutput, hasJsonPath("$[1].msgId"));
         assertThat(standardOutput, hasJsonPath("$[1].originalDestination", equalTo("jms.queue.hocuspocus")));
         assertThat(standardOutput, hasJsonPath("$[1].msgContent._metadata.name", equalTo("some.other.name")));
         assertThat(standardOutput, hasJsonPath("$[1].msgContent._metadata.id", equalTo("c97c5b7b-abc3-49d4-96a9-bcd83aa4ea13")));
+        assertThat(standardOutput, hasJsonPath("$[1].consumer", equalTo("consumer2")));
     }
 
     @Test
@@ -96,7 +98,7 @@ public class ArtemisManagerIT {
     public void shouldRemoveMultipleMessagesReadingIdsFromSystemInput() throws Exception {
         if (notWindows()) {
             setDefaultDLQMessages();
-            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name2\"}}", "jms.queue.abracadabra2");
+            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name2\"}}", "consumer1", "jms.queue.abracadabra2");
 
 
             final String messageData = standardOutputOf(COMMAND_LINE_BROWSE);
@@ -188,8 +190,8 @@ public class ArtemisManagerIT {
             consumerOf("abracadabra");
             consumerOf("hocuspocus");
 
-            putInQueue(DLQ, createLargeMessage(4024L), "jms.queue.abracadabra");
-            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\"}}", "jms.queue.hocuspocus");
+            putInQueue(DLQ, createLargeMessage(4024L), "consumer1", "jms.queue.abracadabra");
+            putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\"}}", "consumer2", "jms.queue.hocuspocus");
 
             assertDLQHasSizeOf(2);
 
@@ -210,8 +212,8 @@ public class ArtemisManagerIT {
     private void setDefaultDLQMessages() throws JMSException, IOException {
         cleanQueue(DLQ);
 
-        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\"}}", "jms.queue.abracadabra");
-        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\"}}", "jms.queue.hocuspocus");
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\"}}", "consumer1", "jms.queue.abracadabra");
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\"}}", "consumer2", "jms.queue.hocuspocus");
 
         assertDLQHasSizeOf(2);
     }

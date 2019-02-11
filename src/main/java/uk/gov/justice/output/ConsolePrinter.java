@@ -39,7 +39,7 @@ public class ConsolePrinter implements OutputPrinter {
     public void writeMap(final Map<String, Long> map, String valueName) {
         final JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
         map.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(
-            entry -> arrayBuilder.add(this.toJsonObject(entry, valueName))
+                entry -> arrayBuilder.add(this.toJsonObject(entry, valueName))
         );
         System.out.println(arrayBuilder.build().toString());
     }
@@ -62,11 +62,15 @@ public class ConsolePrinter implements OutputPrinter {
     private String jsonStringOf(final List<MessageData> messageData) {
         final JsonArrayBuilder jsonResponse = Json.createArrayBuilder();
         for (MessageData md : messageData) {
-            jsonResponse
-                    .add(Json.createObjectBuilder().add("msgId", String.valueOf(md.getMsgId()))
-                            .add("originalDestination", String.valueOf(md.getOriginalDestination()))
-                            .add("msgContent", md.getMsgContent()));
+            JsonObjectBuilder builder = Json.createObjectBuilder().add("msgId", String.valueOf(md.getMsgId()))
+                    .add("originalDestination", String.valueOf(md.getOriginalDestination()))
+                    .add("msgContent", md.getMsgContent());
 
+            if (md.getConsumer() != null) {
+                builder.add("consumer", md.getConsumer());
+            }
+
+            jsonResponse.add(builder.build());
         }
         return jsonResponse.build().toString();
     }

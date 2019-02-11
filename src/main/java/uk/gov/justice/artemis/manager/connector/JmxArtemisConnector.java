@@ -31,23 +31,23 @@ public class JmxArtemisConnector implements ArtemisConnector {
     private final JmxManagement jmxManagement = new JmxManagement(new ConsolePrinter());
 
     private List<JMXServiceURL> jmxServiceUrls;
-    private Map<String,String[]> jmxEnvironment = new HashMap<>();
+    private Map<String, String[]> jmxEnvironment = new HashMap<>();
     private ObjectNameBuilder objectNameBuilder;
 
     @Override
     public void setParameters(final List<String> jmxUrls,
-                    final String brokerName,
-                    final String jmxUsername,
-                    final String jmxPassword,
-                    final String jmsUrl,
-                    final String jmsUsername,
-                    final String jmsPassword) {
+                              final String brokerName,
+                              final String jmxUsername,
+                              final String jmxPassword,
+                              final String jmsUrl,
+                              final String jmsUsername,
+                              final String jmsPassword) {
         this.jmxServiceUrls = jmxProcessor.processJmxUrls(jmxUrls);
         this.objectNameBuilder = jmxProcessor.getObjectNameBuilder(brokerName);
 
         if ((jmxUsername != null) && (jmxPassword != null)) {
             this.jmxEnvironment = new HashMap<>();
-            this.jmxEnvironment.put(JMXConnector.CREDENTIALS, new String[]{ jmxUsername, jmxPassword });
+            this.jmxEnvironment.put(JMXConnector.CREDENTIALS, new String[]{jmxUsername, jmxPassword});
         } else {
             this.jmxEnvironment = emptyMap();
         }
@@ -56,10 +56,10 @@ public class JmxArtemisConnector implements ArtemisConnector {
     @Override
     public List<MessageData> messagesOf(final String destinationName) {
         return jmxProcessor.processQueueControl(this.jmxServiceUrls,
-           this.jmxEnvironment,
-           this.objectNameBuilder, 
-           destinationName,
-           jmxManagement.browseMessages()).flatMap(
+                this.jmxEnvironment,
+                this.objectNameBuilder,
+                destinationName,
+                jmxManagement.browseMessages()).flatMap(
                 Collection::stream).collect(toList());
     }
 
@@ -95,10 +95,10 @@ public class JmxArtemisConnector implements ArtemisConnector {
     @Override
     public List<String> queueNames() {
         return jmxProcessor.processServerControl(
-            this.jmxServiceUrls,
-            this.jmxEnvironment,
-            this.objectNameBuilder,
-            JMSServerControl::getQueueNames).flatMap(
+                this.jmxServiceUrls,
+                this.jmxEnvironment,
+                this.objectNameBuilder,
+                JMSServerControl::getQueueNames).flatMap(
                 Arrays::stream).sorted().
                 distinct().collect(toList());
     }
@@ -107,34 +107,34 @@ public class JmxArtemisConnector implements ArtemisConnector {
     @Override
     public Map<String, Long> queueMessageCount(final Collection<String> queueNames) {
         return jmxProcessor.processQueues(this.jmxServiceUrls,
-            this.jmxEnvironment,
-            this.objectNameBuilder, 
-            queueNames,
-            unchecked(DestinationControl::getMessageCount)).flatMap(
+                this.jmxEnvironment,
+                this.objectNameBuilder,
+                queueNames,
+                unchecked(DestinationControl::getMessageCount)).flatMap(
                 m -> m.entrySet().stream()).collect(
-                    groupingBy(Entry::getKey,
-                    summingLong(Entry::getValue)));
+                groupingBy(Entry::getKey,
+                        summingLong(Entry::getValue)));
     }
 
     @Override
     public List<String> topicNames() {
         return jmxProcessor.processServerControl(this.jmxServiceUrls,
-            this.jmxEnvironment,
-            this.objectNameBuilder,
-            JMSServerControl::getTopicNames).flatMap(
+                this.jmxEnvironment,
+                this.objectNameBuilder,
+                JMSServerControl::getTopicNames).flatMap(
                 Arrays::stream).sorted().
-                    distinct().collect(toList());
+                distinct().collect(toList());
     }
 
     @Override
     public Map<String, Long> topicMessageCount(final Collection<String> topicNames) {
         return jmxProcessor.processTopics(this.jmxServiceUrls,
-            this.jmxEnvironment,
-            this.objectNameBuilder, 
-            topicNames,
-            unchecked(DestinationControl::getMessageCount)).flatMap(
+                this.jmxEnvironment,
+                this.objectNameBuilder,
+                topicNames,
+                unchecked(DestinationControl::getMessageCount)).flatMap(
                 m -> m.entrySet().stream()).collect(
-                    groupingBy(Entry::getKey,
-                    summingLong(Entry::getValue)));
+                groupingBy(Entry::getKey,
+                        summingLong(Entry::getValue)));
     }
 }

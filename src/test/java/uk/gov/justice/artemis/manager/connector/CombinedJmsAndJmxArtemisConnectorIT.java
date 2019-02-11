@@ -64,18 +64,20 @@ public class CombinedJmsAndJmxArtemisConnectorIT {
 
         cleanQueue(queue);
 
-        putInQueue(queue, "{\"key1\":\"value123\"}", "origQueueO1");
-        putInQueue(queue, "{\"key1\":\"valueBB\"}", "origQueueO2");
+        putInQueue(queue, "{\"key1\":\"value123\"}", "consumer1", "origQueueO1");
+        putInQueue(queue, "{\"key1\":\"valueBB\"}", "consumer2", "origQueueO2");
 
         final List<MessageData> messageData = combinedArtemisConnector.messagesOf(queue);
         assertThat(messageData, hasSize(2));
         assertThat(messageData.get(0).getMsgId(), not(nullValue()));
         assertThat(messageData.get(0).getOriginalDestination(), is("origQueueO1"));
         assertThat(messageData.get(0).getMsgContent().getString("key1"), is("value123"));
+        assertThat(messageData.get(0).getConsumer(), is("consumer1"));
 
         assertThat(messageData.get(1).getMsgId(), not(nullValue()));
         assertThat(messageData.get(1).getOriginalDestination(), is("origQueueO2"));
         assertThat(messageData.get(1).getMsgContent().getString("key1"), is("valueBB"));
+        assertThat(messageData.get(1).getConsumer(), is("consumer2"));
     }
 
     @Test
@@ -86,7 +88,7 @@ public class CombinedJmsAndJmxArtemisConnectorIT {
 
         final ByteArrayInputStream messageInput = new ByteArrayInputStream("{\"key1\":\"value123\"}".getBytes());
 
-        putInQueue(queue, messageInput, "origQueueO1");
+        putInQueue(queue, messageInput, "consumer1", "origQueueO1");
 
         final List<MessageData> messageData = combinedArtemisConnector.messagesOf(queue);
         assertThat(messageData, hasSize(1));
@@ -101,9 +103,9 @@ public class CombinedJmsAndJmxArtemisConnectorIT {
 
         cleanQueue(queue);
 
-        putInQueue(queue, "{\"key1\":\"value123\"}", "origQueueO1");
-        putInQueue(queue, "{\"key1\":\"valueBB\"}", "origQueueO2");
-        putInQueue(queue, "{\"key1\":\"valueCC\"}", "origQueueO3");
+        putInQueue(queue, "{\"key1\":\"value123\"}", "consumer1", "origQueueO1");
+        putInQueue(queue, "{\"key1\":\"valueBB\"}", "consumer2", "origQueueO2");
+        putInQueue(queue, "{\"key1\":\"valueCC\"}", "consumer3", "origQueueO3");
 
         final List<MessageData> messageData = combinedArtemisConnector.messagesOf(queue);
         assertThat(messageData, hasSize(3));
@@ -122,8 +124,8 @@ public class CombinedJmsAndJmxArtemisConnectorIT {
 
         cleanQueue(queue);
 
-        putInQueue(queue, "{\"key1\":\"value123\"}", "origQueueO1");
-        putInQueue(queue, "{\"key1\":\"valueBB\"}", "origQueueO2");
+        putInQueue(queue, "{\"key1\":\"value123\"}", "consumer1", "origQueueO1");
+        putInQueue(queue, "{\"key1\":\"valueBB\"}", "consumer2", "origQueueO2");
 
         final List<MessageData> messageData = combinedArtemisConnector.messagesOf(queue);
         assertThat(messageData, hasSize(2));
@@ -142,9 +144,9 @@ public class CombinedJmsAndJmxArtemisConnectorIT {
 
         cleanQueue(queue);
 
-        putInQueue(queue, "{\"key1\":\"value123\"}", "origQueueO1");
-        putInQueue(queue, "{\"key1\":\"valueBB\"}", "origQueueO2");
-        putInQueue(queue, "{\"key1\":\"valueCC\"}", "origQueueO3");
+        putInQueue(queue, "{\"key1\":\"value123\"}", "consumer1", "origQueueO1");
+        putInQueue(queue, "{\"key1\":\"valueBB\"}", "consumer2", "origQueueO2");
+        putInQueue(queue, "{\"key1\":\"valueCC\"}", "consumer3", "origQueueO3");
 
         final List<MessageData> messageData = combinedArtemisConnector.messagesOf(queue);
 
@@ -214,8 +216,8 @@ public class CombinedJmsAndJmxArtemisConnectorIT {
         cleanQueueWithNewConsumer("origQueueO1");
         cleanQueueWithNewConsumer("origQueueO2");
 
-        putInQueue("origQueueO1", "{\"key1\":\"value123\"}");
-        putInQueue("origQueueO2", "{\"key1\":\"valueBB\"}");
+        putInQueue("origQueueO1", "defaultConsumer", "{\"key1\":\"value123\"}");
+        putInQueue("origQueueO2", "defaultConsumer", "{\"key1\":\"valueBB\"}");
 
         final Map<String, Long> messageCounts = combinedArtemisConnector.queueMessageCount(asList("origQueueO1", "origQueueO2"));
         assertThat(messageCounts.keySet(), hasSize(2));

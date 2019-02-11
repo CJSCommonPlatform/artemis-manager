@@ -94,7 +94,6 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
                 jmxManagement.reprocessMessages(msgIds)).mapToLong(Long::longValue).sum();
     }
 
-
     @Override
     public int reprocessAll(final String destinationName) {
         return jmxProcessor.processQueueControl(
@@ -104,7 +103,6 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
                 destinationName,
                 jmxManagement.reprocessAllMessages()).mapToInt(Integer::intValue).sum();
     }
-
 
     @Override
     public List<String> queueNames() {
@@ -116,7 +114,6 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
                 Arrays::stream).sorted().
                 distinct().collect(toList());
     }
-
 
     @Override
     public Map<String, Long> queueMessageCount(final Collection<String> queueNames) {
