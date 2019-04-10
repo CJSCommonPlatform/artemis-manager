@@ -80,8 +80,19 @@ In the examples below it is assumed a configuration file of artemis.config has b
 
 **Note: ReprocessAll uses JMX port to connect to the Artemis broker.**
 
-`java -jar artemis-manager.jar reprocessall @artemis.config
+`java -jar artemis-manager.jar reprocessall @artemis.config`
 
+## Reports on DLQ
+
+* Generate report on the contents of the DLQ.  There are three different reports available.
+
+**Note: Report uses JMS to connect to the Artemis broker.**
+
+`java -jar artemis-manager.jar browse @artemis.config -report totals-by-name-report`
+
+`java -jar artemis-manager.jar browse @artemis.config -report names-by-original-destination-report`
+
+`java -jar artemis-manager.jar browse @artemis.config -report created-at-name-total-report`
 
 ## Chaining Commands
 

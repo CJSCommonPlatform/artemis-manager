@@ -18,6 +18,8 @@
         <slf4j-version>1.7.10</slf4j-version>
         <throwing-function.version>1.3</throwing-function.version>
         <jcommander.version>1.48</jcommander.version>
+        <utilities.version>1.16.2</utilities.version>
+        <opencsv.version>4.5</opencsv.version>
     </properties>
 
     <artifactId>artemis-manager</artifactId>
@@ -106,6 +108,13 @@
             <version>${throwing-function.version}</version>
         </dependency>
         <dependency>
+            <groupId>uk.gov.justice.utils</groupId>
+            <artifactId>utilities-core</artifactId>
+            <version>${utilities.version}</version>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
@@ -123,6 +132,12 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>${opencsv.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -160,7 +175,8 @@
                 <configuration>
                     <classpathDependencyExcludes>
                         <!-- slf4j-log4j12 is included in artemis-manager.jar so exclude it here -->
-                        <classpathDependencyExclude>org.slf4j:slf4j-log4j12</classpathDependencyExclude>
+                        <classpathDependencyExclude>org.slf4j:slf4j-log4j12
+                        </classpathDependencyExclude>
                     </classpathDependencyExcludes>
                 </configuration>
             </plugin>
