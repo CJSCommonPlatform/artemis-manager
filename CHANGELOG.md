@@ -5,9 +5,12 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ## [Unreleased]
 
+### Added
+- Generate reports on the messages on the DLQ
+
 ## [3.2.0] - 2019-02-11
 
-###Added
+### Added
 - Output of consumer name so that it's easy to see where the DLQ message was going to
 
 ## [3.1.0] - 2018-10-30

@@ -13,11 +13,13 @@ import static uk.gov.justice.artemis.manager.util.JmsTestUtil.openJmsConnection;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putInQueue;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.List;
 
 import javax.jms.JMSException;
 
 import com.jayway.jsonpath.JsonPath;
+import com.opencsv.CSVReader;
 import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -28,6 +30,7 @@ public class ArtemisManagerIT {
 
     private static final String DLQ = "DLQ";
     private static final String COMMAND_LINE_BROWSE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar browse -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
+    private static final String COMMAND_LINE_REPORT = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar report -reportType %s -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
     private static final String COMMAND_LINE_REPROCESS = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar reprocess -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
     private static final String COMMAND_LINE_REMOVE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar remove -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
 
@@ -65,6 +68,94 @@ public class ArtemisManagerIT {
         assertThat(standardOutput, hasJsonPath("$[1].msgContent._metadata.name", equalTo("some.other.name")));
         assertThat(standardOutput, hasJsonPath("$[1].msgContent._metadata.id", equalTo("c97c5b7b-abc3-49d4-96a9-bcd83aa4ea13")));
         assertThat(standardOutput, hasJsonPath("$[1].consumer", equalTo("consumer2")));
+    }
+
+    @Test
+    public void shouldGenerateTotalsByNameReportWithDLQ() throws Exception {
+        cleanQueue(DLQ);
+
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\",\"id\":\"c97c5b7b-abc3-49d4-96a9-bcd83aa4ea12\"}}", "consumer1", "jms.queue.abracadabra");
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\",\"id\":\"c97c5b7b-abc3-49d4-96a9-bcd83aa4ea13\"}}", "consumer2", "jms.queue.hocuspocus");
+
+        final Output output = execute(String.format(COMMAND_LINE_REPORT, "totals-by-name-report"));
+        assertThat(output.errorOutput, isEmptyString());
+
+        final String standardOutput = output.standardOutput();
+
+        final CSVReader reader = new CSVReader(new StringReader(standardOutput));
+
+        final List<String[]> lines = reader.readAll();
+
+        assertThat(lines.get(0)[0], is("Name"));
+        assertThat(lines.get(0)[1], is("Total Messages"));
+
+        assertThat(lines.get(1)[0], is("some.other.name"));
+        assertThat(lines.get(1)[1], is("1"));
+
+        assertThat(lines.get(2)[0], is("some.name"));
+        assertThat(lines.get(2)[1], is("1"));
+
+        assertThat(lines.get(3)[0], is("Total Messages"));
+        assertThat(lines.get(3)[1], is("2"));
+    }
+
+    @Test
+    public void shouldGenerateNamesByOriginalDestinationReportWithDLQ() throws Exception {
+        cleanQueue(DLQ);
+
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\",\"id\":\"c97c5b7b-abc3-49d4-96a9-bcd83aa4ea12\"}}", "consumer1", "jms.queue.abracadabra");
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\",\"id\":\"c97c5b7b-abc3-49d4-96a9-bcd83aa4ea13\"}}", "consumer2", "jms.queue.hocuspocus");
+
+        final Output output = execute(String.format(COMMAND_LINE_REPORT, "names-by-original-destination-report"));
+        assertThat(output.errorOutput, isEmptyString());
+
+        final String standardOutput = output.standardOutput();
+
+        final CSVReader reader = new CSVReader(new StringReader(standardOutput));
+
+        final List<String[]> lines = reader.readAll();
+
+        assertThat(lines.get(0)[0], is("Original Destination"));
+        assertThat(lines.get(0)[1], is("Name"));
+
+        assertThat(lines.get(1)[0], is("jms.queue.abracadabra"));
+        assertThat(lines.get(1)[1], is("some.name"));
+
+        assertThat(lines.get(2)[0], is("jms.queue.hocuspocus"));
+        assertThat(lines.get(2)[1], is("some.other.name"));
+    }
+
+    @Test
+    public void shouldGenerateCreatedAtNameTotalReportWithDLQ() throws Exception {
+        cleanQueue(DLQ);
+
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.name\",\"createdAt\":\"2019-04-06T16:32:48.725Z\",\"id\":\"c97c5b7b-abc3-49d4-96a9-bcd83aa4ea12\"}}", "consumer1", "jms.queue.abracadabra");
+        putInQueue(DLQ, "{\"_metadata\":{\"name\":\"some.other.name\",\"createdAt\":\"2019-04-06T16:32:48.725Z\",\"id\":\"c97c5b7b-abc3-49d4-96a9-bcd83aa4ea13\"}}", "consumer2", "jms.queue.hocuspocus");
+
+        final Output output = execute(String.format(COMMAND_LINE_REPORT, "created-at-name-total-report"));
+        assertThat(output.errorOutput, isEmptyString());
+
+        final String standardOutput = output.standardOutput();
+
+        final CSVReader reader = new CSVReader(new StringReader(standardOutput));
+
+        final List<String[]> lines = reader.readAll();
+
+        assertThat(lines.get(0)[0], is("Created At"));
+        assertThat(lines.get(0)[1], is("Name"));
+        assertThat(lines.get(0)[2], is("Total Messages"));
+
+        assertThat(lines.get(1)[0], is("2019-04-06"));
+        assertThat(lines.get(1)[1], is("some.other.name"));
+        assertThat(lines.get(1)[2], is("1"));
+
+        assertThat(lines.get(2)[0], is("2019-04-06"));
+        assertThat(lines.get(2)[1], is("some.name"));
+        assertThat(lines.get(2)[2], is("1"));
+
+        assertThat(lines.get(3)[0], is("Total Messages"));
+        assertThat(lines.get(3)[1], is(""));
+        assertThat(lines.get(3)[2], is("2"));
     }
 
     @Test
