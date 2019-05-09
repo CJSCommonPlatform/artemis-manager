@@ -5,6 +5,8 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ## [Unreleased]
 
+## [3.3.0] - 2019-05-09
+
 ### Added
 - Generate reports on the messages on the DLQ
 
