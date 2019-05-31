@@ -15,10 +15,10 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class ReportTest {
 
     @Mock
-    ArtemisConnector artemisConnector;
+    private ArtemisConnector artemisConnector;
 
     @InjectMocks
-    Report report;
+    private Report report;
 
     @Test
     public void shouldInvokeConnector() throws Exception {

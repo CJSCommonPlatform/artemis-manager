@@ -26,8 +26,8 @@ public class BootstrapTest {
 
         Bootstrap.main(inputArgs);
 
-        assertThat(TestAbstracCommand.args, nullValue());
-        assertThat(TestAbstracCommand.value, nullValue());
+        assertThat(TestAbstractCommand.args, nullValue());
+        assertThat(TestAbstractCommand.value, nullValue());
     }
 
     @Parameters(separators = "=", commandDescription = "Test Command")
@@ -45,7 +45,7 @@ public class BootstrapTest {
     }
 
     @Parameters(separators = "=", commandDescription = "Test Command")
-    public static abstract class TestAbstracCommand implements ShellCommand {
+    public static abstract class TestAbstractCommand implements ShellCommand {
 
         private static String[] args;
 

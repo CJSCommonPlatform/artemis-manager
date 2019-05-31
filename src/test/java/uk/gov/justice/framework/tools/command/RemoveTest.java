@@ -1,5 +1,6 @@
 package uk.gov.justice.framework.tools.command;
 
+import static java.util.Collections.singletonList;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
@@ -14,7 +15,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.Arrays;
 import java.util.Iterator;
 
 import org.junit.After;
@@ -30,20 +30,20 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RemoveTest {
-    public static final byte[] NOT_USED_BYTES = "i123".getBytes();
-    private PrintStream originalOut;
 
+    private static final byte[] NOT_USED_BYTES = "i123".getBytes();
+
+    private PrintStream originalOut;
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
 
-
     @Mock
-    ArtemisConnector artemisConnector;
+    private ArtemisConnector artemisConnector;
 
     @Captor
-    ArgumentCaptor<Iterator<String>> msgIdsIteratorCaptor;
+    private ArgumentCaptor<Iterator<String>> msgIdsIteratorCaptor;
 
     @InjectMocks
-    Remove removeCommand;
+    private Remove removeCommand;
 
     @Before
     public void setUpStreams() {
@@ -58,7 +58,7 @@ public class RemoveTest {
 
     @Test
     public void shouldInvokeConnectorWithSingleMessageId() throws Exception {
-        removeCommand.jmxURLs = Arrays.asList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
+        removeCommand.jmxURLs = singletonList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
         removeCommand.brokerName = "brokerabc";
         removeCommand.msgId = "123456";
 
@@ -70,7 +70,7 @@ public class RemoveTest {
 
     @Test
     public void shouldInvokeConnectorWhenReceivingMultipleMessageIdsOnInput() throws Exception {
-        removeCommand.jmxURLs = Arrays.asList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
+        removeCommand.jmxURLs = singletonList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
         removeCommand.brokerName = "brokerabc";
 
         final InputStream sysIn = System.in;
@@ -87,8 +87,9 @@ public class RemoveTest {
     }
 
     @Test
-    public void shouldOutputNumnerOfRemovedMessages() throws Exception {
-        when(artemisConnector.remove(anyString(), any(Iterator.class))).thenReturn(3l);
+    @SuppressWarnings("unchecked")
+    public void shouldOutputNumberOfRemovedMessages() throws Exception {
+        when(artemisConnector.remove(anyString(), any(Iterator.class))).thenReturn(3L);
 
         final InputStream sysIn = System.in;
         final ByteArrayInputStream in = new ByteArrayInputStream(NOT_USED_BYTES);

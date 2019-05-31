@@ -1,5 +1,6 @@
 package uk.gov.justice.framework.tools.command;
 
+import static java.util.Collections.singletonList;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyString;
@@ -13,11 +14,9 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.PrintStream;
-import java.util.Arrays;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -28,17 +27,16 @@ import org.mockito.runners.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ReprocessAllTest {
 
-    public static final byte[] NOT_USED_BYTES = "i123".getBytes();
+    private static final byte[] NOT_USED_BYTES = "i123".getBytes();
 
     private PrintStream originalOut;
-
     private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
 
     @Mock
-    ArtemisConnector artemisConnector;
+    private ArtemisConnector artemisConnector;
 
     @InjectMocks
-    ReprocessAll reprocessAllCommand;
+    private ReprocessAll reprocessAllCommand;
 
     @Before
     public void setUpStreams() {
@@ -53,16 +51,14 @@ public class ReprocessAllTest {
 
     @Test
     public void shouldInvokeConnector() throws Exception {
-        reprocessAllCommand.jmxURLs = Arrays.asList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
+        reprocessAllCommand.jmxURLs = singletonList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
         reprocessAllCommand.brokerName = "brokerabc";
         reprocessAllCommand.msgId = "123456";
 
         reprocessAllCommand.run(null);
 
         verify(artemisConnector).reprocessAll(eq("DLQ"));
-
     }
-
 
     @Test
     public void shouldOutputNumberOfReprocessedMessages() throws Exception {

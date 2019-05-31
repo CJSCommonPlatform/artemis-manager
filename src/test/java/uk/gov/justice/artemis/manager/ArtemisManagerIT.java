@@ -11,15 +11,21 @@ import static uk.gov.justice.artemis.manager.util.JmsTestUtil.closeJmsConnection
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.consumerOf;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.openJmsConnection;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putInQueue;
+import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putInQueueWithMessageId;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.List;
 
 import javax.jms.JMSException;
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonReader;
 
 import com.jayway.jsonpath.JsonPath;
 import com.opencsv.CSVReader;
+import org.apache.activemq.artemis.utils.UUID;
+import org.apache.activemq.artemis.utils.UUIDGenerator;
 import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -33,6 +39,7 @@ public class ArtemisManagerIT {
     private static final String COMMAND_LINE_REPORT = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar report -reportType %s -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
     private static final String COMMAND_LINE_REPROCESS = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar reprocess -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
     private static final String COMMAND_LINE_REMOVE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar remove -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
+    private static final String COMMAND_LINE_REMOVE_ALL_DUPLICATES = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar removeallduplicates -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
 
     @BeforeClass
     public static void beforeClass() throws JMSException {
@@ -241,6 +248,39 @@ public class ArtemisManagerIT {
             final Output output = execute(new String[]{"/bin/sh", "-c", shellCommand});
 
             assertThat(output.standardOutput(), is("{\"Command\":\"Remove message\",\"Occurrences\":2}\n"));
+        }
+    }
+
+    @Test
+    public void shouldRemoveAllDuplicateMessagesAndReturnListOfRemovedMessageIds() throws Exception {
+        if (notWindows()) {
+
+            final UUID jmsMessageId_1 = UUIDGenerator.getInstance().generateUUID();
+            final UUID jmsMessageId_2 = UUIDGenerator.getInstance().generateUUID();
+            final UUID jmsMessageId_3 = UUIDGenerator.getInstance().generateUUID();
+            final String messageText = "{\"key1\":\"value123\"}";
+            final String consumer_1 = "consumer1";
+            final String originalQueue_1 = "origQueueO1";
+
+            cleanQueue(DLQ);
+
+            putInQueueWithMessageId(DLQ, jmsMessageId_1, messageText, consumer_1, originalQueue_1);
+            putInQueueWithMessageId(DLQ, jmsMessageId_1, messageText, consumer_1, originalQueue_1);
+            putInQueueWithMessageId(DLQ, jmsMessageId_1, messageText, consumer_1, originalQueue_1);
+            putInQueueWithMessageId(DLQ, jmsMessageId_2, messageText, consumer_1, originalQueue_1);
+            putInQueueWithMessageId(DLQ, jmsMessageId_3, messageText, consumer_1, originalQueue_1);
+            putInQueueWithMessageId(DLQ, jmsMessageId_3, messageText, consumer_1, originalQueue_1);
+
+            final Output output = execute(COMMAND_LINE_REMOVE_ALL_DUPLICATES);
+            assertThat(output.errorOutput, isEmptyString());
+
+            final String standardOutput = output.standardOutput();
+
+            final JsonReader reader = Json.createReader(new StringReader(standardOutput));
+            final JsonArray jsonArray = reader.readArray();
+
+            assertThat(jsonArray.size(), is(2));
+            assertDLQHasSizeOf(3);
         }
     }
 

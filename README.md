@@ -60,6 +60,18 @@ In the examples below it is assumed a configuration file of artemis.config has b
 
 `echo msgId1 msgId2 | java -jar artemis-manager.jar remove`
 
+## Remove All Duplicate Messages from DLQ
+
+* Remove all duplicate messages
+
+This checks the DLQ to find any duplicate messages and will remove the duplicate messages from the DLQ leaving a single message on the DLQ.
+
+Only messages that have the same JMSMessageId and Consumer (_AMQ_ORIG_QUEUE) will be removed.  Thus any duplicate Topic messages which should go to different consumers will not be deleted.
+
+**Note: Browse uses JMS to connect to the Artemis broker.**
+
+`java -jar artemis-manager.jar removeallduplicates @artemis.config`
+
 ## Reprocess Message from DLQ
 
 * Reprocess message by id

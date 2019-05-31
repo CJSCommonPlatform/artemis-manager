@@ -12,6 +12,8 @@ public interface ArtemisConnector {
 
     long remove(final String destinationName, final Iterator<String> msgIds);
 
+    List<String> removeAllDuplicates(final String destinationName);
+
     long reprocess(final String destinationName, final Iterator<String> msgIds);
 
     int reprocessAll(final String destinationName);
@@ -25,10 +27,10 @@ public interface ArtemisConnector {
     Map<String, Long> topicMessageCount(final Collection<String> queueNames);
 
     void setParameters(final List<String> jmxUrls,
-                    final String brokerName,
-                    final String jmxUsername,
-                    final String jmxPassword,
-                    final String jmsUrl,
-                    final String jmsUsername,
-                    final String jmsPassword) throws MalformedURLException;
+                       final String brokerName,
+                       final String jmxUsername,
+                       final String jmxPassword,
+                       final String jmsUrl,
+                       final String jmsUsername,
+                       final String jmsPassword) throws MalformedURLException;
 }

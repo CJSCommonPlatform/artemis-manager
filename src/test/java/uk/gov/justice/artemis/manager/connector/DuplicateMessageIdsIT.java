@@ -83,7 +83,10 @@ public class DuplicateMessageIdsIT {
 
         final List<MessageData> messageData = artemisConnector.messagesOf(dlq);
 
-        messageData.forEach(message -> System.out.println("ID = " + message.getMsgId() + "\n original destination = " + message.getOriginalDestination() + "\n content = " + message.getMsgContent()));
+        messageData.forEach(message -> System.out.println("ID = " + message.getMsgId()
+                + "\n original destination = " + message.getOriginalDestination()
+                + "\n consumer = " + message.getConsumer()
+                + "\n content = " + message.getMsgContent()));
 
         final JmsTopicListenerCollector jmsTopicListener_1 = new JmsTopicListenerCollector(topicName, subscription_1);
         final JmsTopicListenerCollector jmsTopicListener_2 = new JmsTopicListenerCollector(topicName, subscription_2);
