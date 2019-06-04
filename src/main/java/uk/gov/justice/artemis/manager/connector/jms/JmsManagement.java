@@ -1,7 +1,5 @@
 package uk.gov.justice.artemis.manager.connector.jms;
 
-import static java.util.Arrays.stream;
-
 import uk.gov.justice.artemis.manager.connector.MessageData;
 
 import java.util.ArrayList;
@@ -21,6 +19,7 @@ public class JmsManagement {
     private static final String CONSUMER = "_AMQ_ORIG_QUEUE";
 
     public JmsManagementFunction<List<MessageData>> browseMessages() {
+
         return queueBrowser -> {
             try {
                 final Enumeration<?> browserEnumeration = queueBrowser.getEnumeration();

@@ -1,11 +1,10 @@
 package uk.gov.justice.framework.tools.command;
 
+import static java.util.Collections.singletonList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
-
-import java.util.Arrays;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -18,16 +17,16 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class ListTopicsTest {
 
     @Mock
-    ArtemisConnector artemisConnector;
+    private ArtemisConnector artemisConnector;
 
     @InjectMocks
-    ListTopics listTopicsCommand;
+    private ListTopics listTopicsCommand;
 
     @Test
     public void shouldInvokeConnector() throws Exception {
-        listTopicsCommand.jmxURLs = Arrays.asList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
+        listTopicsCommand.jmxURLs = singletonList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
         listTopicsCommand.brokerName = "brokerabc";
-        when(artemisConnector.topicNames()).thenReturn(Arrays.asList("testTopic"));
+        when(artemisConnector.topicNames()).thenReturn(singletonList("testTopic"));
 
         listTopicsCommand.run(null);
         verify(artemisConnector).topicNames();

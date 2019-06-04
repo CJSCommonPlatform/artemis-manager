@@ -20,14 +20,18 @@ import javax.jms.Topic;
 import javax.jms.TopicSubscriber;
 
 import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
+import org.apache.activemq.artemis.jms.client.ActiveMQTextMessage;
+import org.apache.activemq.artemis.utils.UUID;
 
 public class JmsTestUtil {
+
     private static final ConnectionFactory JMS_CF = new ActiveMQConnectionFactory("tcp://localhost:61616?clientID=artemis-manager");
+    private static final String ORIGINAL_DESTINATION = "_AMQ_ORIG_ADDRESS";
+    private static final String CONSUMER = "_AMQ_ORIG_QUEUE";
+
     private static Connection JMS_CONNECTION;
     private static Session JMS_SESSION;
 
-    private static final String ORIGINAL_DESTINATION = "_AMQ_ORIG_ADDRESS";
-    private static final String CONSUMER = "_AMQ_ORIG_QUEUE";
     private static Map<String, Queue> QUEUES = new HashMap<>();
     private static Map<String, MessageConsumer> CONSUMERS = new HashMap<>();
     private static Map<String, MessageProducer> PRODUCERS = new HashMap<>();
@@ -35,33 +39,59 @@ public class JmsTestUtil {
     private static Map<String, TopicSubscriber> SUBSCRIBERS = new HashMap<>();
     private static Map<String, MessageProducer> PUBLISHERS = new HashMap<>();
 
-    public static void putInQueue(final String queueName, final String msgText, final String consumer, final String... origAddress) throws JMSException {
-        TextMessage message = JMS_SESSION.createTextMessage(msgText);
-        if (origAddress.length > 0) {
-            message.setStringProperty(ORIGINAL_DESTINATION, origAddress[0]);
+    public static void putInQueue(final String queueName, final String msgText, final String consumer, final String... originalAddress) throws JMSException {
+
+        final TextMessage message = JMS_SESSION.createTextMessage(msgText);
+
+        if (originalAddress.length > 0) {
+            message.setStringProperty(ORIGINAL_DESTINATION, originalAddress[0]);
         }
+
         message.setStringProperty(CONSUMER, consumer);
         producerOf(queueName).send(message);
     }
 
-    public static void putInQueue(final String queueName, final InputStream messageInput, final String consumer, final String... origAddress) throws JMSException {
+    public static void putInQueueWithMessageId(final String queueName, final UUID jmsMessageId, final String msgText, final String consumer, final String... originalAddress) throws JMSException {
+
+        final TextMessage message = JMS_SESSION.createTextMessage(msgText);
+
+        if (originalAddress.length > 0) {
+            message.setStringProperty(ORIGINAL_DESTINATION, originalAddress[0]);
+        }
+
+        message.setStringProperty(CONSUMER, consumer);
+
+        final ActiveMQTextMessage activeMQTextMessage = (ActiveMQTextMessage) message;
+        activeMQTextMessage.getCoreMessage().setUserID(jmsMessageId);
+
+        producerOf(queueName).setDisableMessageID(true);
+        producerOf(queueName).send(message);
+        producerOf(queueName).setDisableMessageID(false);
+    }
+
+    public static void putInQueue(final String queueName, final InputStream messageInput, final String consumer, final String... originalAddress) throws JMSException {
+
         final Message message = JMS_SESSION.createBytesMessage();
 
         message.setObjectProperty("JMS_AMQ_InputStream", messageInput);
 
-        if (origAddress.length > 0) {
-            message.setStringProperty(ORIGINAL_DESTINATION, origAddress[0]);
+        if (originalAddress.length > 0) {
+            message.setStringProperty(ORIGINAL_DESTINATION, originalAddress[0]);
         }
+
         message.setStringProperty(CONSUMER, consumer);
 
         producerOf(queueName).send(message);
     }
 
-    public static void putOnTopic(final String topicName, final String msgText, final String... origAddress) throws JMSException {
-        TextMessage message = JMS_SESSION.createTextMessage(msgText);
-        if (origAddress.length > 0) {
-            message.setStringProperty("_AMQ_ORIG_ADDRESS", origAddress[0]);
+    public static void putOnTopic(final String topicName, final String msgText, final String... originalAddress) throws JMSException {
+
+        final TextMessage message = JMS_SESSION.createTextMessage(msgText);
+
+        if (originalAddress.length > 0) {
+            message.setStringProperty("_AMQ_ORIG_ADDRESS", originalAddress[0]);
         }
+
         publisherOf(topicName).send(message);
     }
 
@@ -72,6 +102,7 @@ public class JmsTestUtil {
      * @return the number of cleaned messages
      */
     public static int cleanQueue(final String queueName) throws JMSException {
+
         JMS_CONNECTION.start();
         final MessageConsumer consumer = consumerOf(queueName);
 
@@ -79,6 +110,7 @@ public class JmsTestUtil {
         while (consumer.receiveNoWait() != null) {
             cleanedMessage++;
         }
+
         JMS_CONNECTION.stop();
         return cleanedMessage;
     }
@@ -90,14 +122,17 @@ public class JmsTestUtil {
      * @return the number of cleaned messages
      */
     public static int cleanQueueWithNewConsumer(final String queueName) throws JMSException {
+
         JMS_CONNECTION.start();
         int cleanedMessage = 0;
+
         try (final MessageConsumer consumer = JMS_SESSION.createConsumer(queueOf(queueName))) {
 
             while (consumer.receiveNoWait() != null) {
                 cleanedMessage++;
             }
         }
+
         JMS_CONNECTION.stop();
         return cleanedMessage;
     }
@@ -109,6 +144,7 @@ public class JmsTestUtil {
      * @return the number of cleaned messages
      */
     public static int cleanTopic(final String topicName, final String name) throws JMSException {
+
         JMS_CONNECTION.start();
         final TopicSubscriber subscriber = subscriberOf(topicName, name);
 
@@ -116,11 +152,13 @@ public class JmsTestUtil {
         while (subscriber.receiveNoWait() != null) {
             cleanedMessage++;
         }
+        
         JMS_CONNECTION.stop();
         return cleanedMessage;
     }
 
     public static MessageConsumer consumerOf(final String queueName) throws JMSException {
+
         return CONSUMERS.computeIfAbsent(queueName, name -> {
             try {
                 return JMS_SESSION.createConsumer(queueOf(name));
@@ -131,6 +169,7 @@ public class JmsTestUtil {
     }
 
     private static MessageProducer producerOf(final String queueName) throws JMSException {
+
         return PRODUCERS.computeIfAbsent(queueName, name -> {
             try {
                 return JMS_SESSION.createProducer(queueOf(name));
@@ -141,6 +180,7 @@ public class JmsTestUtil {
     }
 
     private static MessageProducer publisherOf(final String topicName) throws JMSException {
+
         return PUBLISHERS.computeIfAbsent(topicName, name -> {
             try {
                 return JMS_SESSION.createProducer(topicOf(name));
@@ -151,6 +191,7 @@ public class JmsTestUtil {
     }
 
     private static TopicSubscriber subscriberOf(final String topicName, final String subscriptionName) throws JMSException {
+
         return SUBSCRIBERS.computeIfAbsent(topicName, name -> {
             try {
                 return JMS_SESSION.createDurableSubscriber(topicOf(name), subscriptionName);
@@ -161,7 +202,8 @@ public class JmsTestUtil {
     }
 
     public static void closeJmsConnection() throws JMSException {
-        SUBSCRIBERS.values().stream().forEach(
+
+        SUBSCRIBERS.values().forEach(
                 s -> {
                     try {
                         s.close();
@@ -169,7 +211,7 @@ public class JmsTestUtil {
                     }
                 });
         SUBSCRIBERS.clear();
-        PUBLISHERS.values().stream().forEach(
+        PUBLISHERS.values().forEach(
                 p -> {
                     try {
                         p.close();
@@ -178,7 +220,7 @@ public class JmsTestUtil {
                 });
         PUBLISHERS.clear();
 
-        CONSUMERS.values().stream().forEach(
+        CONSUMERS.values().forEach(
                 c -> {
                     try {
                         c.close();
@@ -187,7 +229,7 @@ public class JmsTestUtil {
                 });
         CONSUMERS.clear();
 
-        PRODUCERS.values().stream().forEach(
+        PRODUCERS.values().forEach(
                 p -> {
                     try {
                         p.close();

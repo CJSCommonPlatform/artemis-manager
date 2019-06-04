@@ -1,10 +1,9 @@
 package uk.gov.justice.framework.tools.command;
 
+import static java.util.Collections.singletonList;
 import static org.mockito.Mockito.verify;
 
 import uk.gov.justice.artemis.manager.connector.ArtemisConnector;
-
-import java.util.Arrays;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,14 +16,14 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class BrowseTest {
 
     @Mock
-    ArtemisConnector artemisConnector;
+    private ArtemisConnector artemisConnector;
 
     @InjectMocks
-    Browse browseCommand;
+    private Browse browseCommand;
 
     @Test
     public void shouldInvokeConnector() throws Exception {
-        browseCommand.jmxURLs = Arrays.asList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
+        browseCommand.jmxURLs = singletonList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
         browseCommand.jmsURL = "tcp://localhost:61616";
         browseCommand.brokerName = "brokerabc";
 

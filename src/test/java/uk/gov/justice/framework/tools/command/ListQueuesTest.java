@@ -1,5 +1,6 @@
 package uk.gov.justice.framework.tools.command;
 
+import static java.util.Collections.singletonList;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -18,14 +19,14 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class ListQueuesTest {
 
     @Mock
-    ArtemisConnector artemisConnector;
+    private ArtemisConnector artemisConnector;
 
     @InjectMocks
-    ListQueues listQueuesCommand;
+    private ListQueues listQueuesCommand;
 
     @Test
     public void shouldInvokeConnector() throws Exception {
-        listQueuesCommand.jmxURLs = Arrays.asList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
+        listQueuesCommand.jmxURLs = singletonList("service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi");
         listQueuesCommand.brokerName = "brokerabc";
         when(artemisConnector.queueNames()).thenReturn(Arrays.asList("DLQ", "ExpiryQueue"));
 

@@ -73,6 +73,11 @@ public class JmxArtemisConnector implements ArtemisConnector {
     }
 
     @Override
+    public List<String> removeAllDuplicates(final String destinationName) {
+        throw new UnsupportedOperationException("removeAllDuplicates is not supported by the JmxArtemisConnector");
+    }
+
+    @Override
     public long reprocess(final String destinationName, final Iterator<String> msgIds) {
         return jmxProcessor.processQueueControl(
                 this.jmxServiceUrls,
