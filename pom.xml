@@ -23,7 +23,7 @@
     </properties>
 
     <artifactId>artemis-manager</artifactId>
-    <version>3.4.0-SNAPSHOT</version>
+    <version>3.4.0</version>
 
     <scm>
         <connection>${cpp.scm.connection}</connection>
