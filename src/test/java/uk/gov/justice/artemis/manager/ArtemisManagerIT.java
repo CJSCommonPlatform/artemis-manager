@@ -6,6 +6,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.isEmptyString;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.cleanQueue;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.closeJmsConnection;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.consumerOf;
@@ -40,6 +41,7 @@ public class ArtemisManagerIT {
     private static final String COMMAND_LINE_REPROCESS = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar reprocess -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
     private static final String COMMAND_LINE_REMOVE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar remove -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
     private static final String COMMAND_LINE_REMOVE_ALL_DUPLICATES = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar removeallduplicates -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
+    private static final String COMMAND_LINE_DEDUPLICATE_TOPIC_MESSAGES = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar deduplicatetopicmessages -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
 
     @BeforeClass
     public static void beforeClass() throws JMSException {
@@ -340,6 +342,54 @@ public class ArtemisManagerIT {
         }
     }
 
+    @Test
+    public void shouldDeduplicateTopicMessagesAndReturnListOfMessageIds() throws Exception {
+        if (notWindows()) {
+
+            final UUID jmsMessageId_1 = UUIDGenerator.getInstance().generateUUID();
+            final UUID jmsMessageId_2 = UUIDGenerator.getInstance().generateUUID();
+            final UUID jmsMessageId_3 = UUIDGenerator.getInstance().generateUUID();
+            final String messageText_1 = "{\"key1\":\"value1\"}";
+            final String messageText_2 = "{\"key1\":\"value2\"}";
+            final String consumer_1 = "consumer1";
+            final String consumer_2 = "consumer2";
+            final String consumer_3 = "consumer3";
+            final String originalQueue_1 = "origQueueO1";
+            final String originalQueue_2 = "origQueueO2";
+
+            cleanQueue(DLQ);
+
+            putInQueueWithMessageId(DLQ, jmsMessageId_1, messageText_1, consumer_1, originalQueue_1);
+            putInQueueWithMessageId(DLQ, jmsMessageId_1, messageText_1, consumer_1, originalQueue_1);
+            putInQueueWithMessageId(DLQ, jmsMessageId_1, messageText_1, consumer_1, originalQueue_1);
+            putInQueueWithMessageId(DLQ, jmsMessageId_2, messageText_1, consumer_1, originalQueue_1);
+            putInQueueWithMessageId(DLQ, jmsMessageId_3, messageText_2, consumer_1, originalQueue_2);
+            putInQueueWithMessageId(DLQ, jmsMessageId_3, messageText_2, consumer_2, originalQueue_2);
+            putInQueueWithMessageId(DLQ, jmsMessageId_3, messageText_2, consumer_3, originalQueue_2);
+
+            final Output output = execute(COMMAND_LINE_DEDUPLICATE_TOPIC_MESSAGES);
+            assertThat(output.errorOutput, isEmptyString());
+
+            final String standardOutput = output.standardOutput();
+
+            final JsonReader reader = Json.createReader(new StringReader(standardOutput));
+            final JsonArray jsonArray = reader.readArray();
+
+            assertThat(jsonArray.size(), is(3));
+            assertDLQHasSizeOf(7);
+
+            jsonArray.forEach(jsonValue -> {
+                try {
+                    execute(COMMAND_LINE_REMOVE + " -msgId " + jsonValue.toString());
+                } catch (final IOException e) {
+                    fail("Failed to remove: " + jsonValue.toString());
+                }
+            });
+
+            assertDLQHasSizeOf(4);
+        }
+    }
+
     private void setDefaultDLQMessages() throws JMSException, IOException {
         cleanQueue(DLQ);
 
@@ -362,11 +412,6 @@ public class ArtemisManagerIT {
     private String standardOutputOf(final String cmd) throws IOException {
         return execute(cmd).standardOutput();
     }
-
-    private String errorOutputOf(final String cmd) throws IOException {
-        return execute(cmd).errorOutput();
-    }
-
 
     private Output execute(final String[] cmd) throws IOException {
         Runtime runtime = Runtime.getRuntime();

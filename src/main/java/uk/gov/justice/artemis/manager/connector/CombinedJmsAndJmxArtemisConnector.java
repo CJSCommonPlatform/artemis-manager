@@ -12,6 +12,7 @@ import uk.gov.justice.artemis.manager.connector.combined.duplicate.AddedMessageF
 import uk.gov.justice.artemis.manager.connector.combined.duplicate.DuplicateMessageFinder;
 import uk.gov.justice.artemis.manager.connector.combined.duplicate.DuplicateMessageRemover;
 import uk.gov.justice.artemis.manager.connector.combined.duplicate.JmsMessageUtil;
+import uk.gov.justice.artemis.manager.connector.combined.duplicate.TopicDuplicateMessageFinder;
 import uk.gov.justice.artemis.manager.connector.jms.JmsManagement;
 import uk.gov.justice.artemis.manager.connector.jms.JmsProcessor;
 import uk.gov.justice.artemis.manager.connector.jmx.JmxManagement;
@@ -48,6 +49,7 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
     private final JmsMessageUtil jmsMessageUtil = new JmsMessageUtil();
     private final CombinedManagement combinedManagement = new CombinedManagement(
             new DuplicateMessageFinder(jmsMessageUtil),
+            new TopicDuplicateMessageFinder(jmsMessageUtil),
             new DuplicateMessageRemover(),
             new AddedMessageFinder(jmsMessageUtil));
 
@@ -112,6 +114,17 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
                 objectNameBuilder,
                 destinationName,
                 combinedManagement.removeAllDuplicates());
+    }
+
+    @Override
+    public List<String> deduplicateTopicMessages(final String destinationName) {
+        return combinedProcessor.process(
+                jmsFactory,
+                jmxServiceUrls,
+                jmxEnvironment,
+                objectNameBuilder,
+                destinationName,
+                combinedManagement.deduplicateTopicMessages());
     }
 
     @Override

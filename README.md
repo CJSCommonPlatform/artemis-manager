@@ -72,6 +72,18 @@ Only messages that have the same JMSMessageId and Consumer (_AMQ_ORIG_QUEUE) wil
 
 `java -jar artemis-manager.jar removeallduplicates @artemis.config`
 
+## Deduplicate Topic Messages from DLQ
+
+* Deduplicate topic messages
+
+This checks the DLQ to find any duplicate Topic messages and will remove the duplicate messages from the DLQ.  Then it re-sends the duplicates to the DLQ, so that a unique JMSMessageId is created for each message.  The messages can then be replayed or removed individually.
+
+Only messages that have the same JMSMessageId and different Consumer (_AMQ_ORIG_QUEUE) will be removed.
+
+**Note: Browse uses JMS to connect to the Artemis broker.**
+
+`java -jar artemis-manager.jar deduplicatetopicmessages @artemis.config`
+
 ## Reprocess Message from DLQ
 
 * Reprocess message by id

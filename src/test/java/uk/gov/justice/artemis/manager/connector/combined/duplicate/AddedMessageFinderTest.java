@@ -65,7 +65,7 @@ public class AddedMessageFinderTest {
         when(jmsMessageUtil.getJmsMessageIdFrom(message_4)).thenReturn(messageId_4);
 
         final List<String> addedMessageIds = addedMessageFinder.findAddedMessages(
-                new DuplicateMessages(null, messageCache),
+                new BrowsedMessages(null, messageCache),
                 queueBrowser);
 
         assertThat(addedMessageIds.size(), is(2));
@@ -81,7 +81,7 @@ public class AddedMessageFinderTest {
         when(queueBrowser.getEnumeration()).thenThrow(jmsException);
 
         try {
-            addedMessageFinder.findAddedMessages(mock(DuplicateMessages.class), queueBrowser);
+            addedMessageFinder.findAddedMessages(mock(BrowsedMessages.class), queueBrowser);
             fail();
         } catch (final CombinedManagementFunctionException exception) {
             Assert.assertThat(exception.getMessage(), is("Failed to browse messages on queue."));

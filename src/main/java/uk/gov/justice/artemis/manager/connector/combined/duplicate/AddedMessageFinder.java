@@ -20,9 +20,9 @@ public class AddedMessageFinder {
     }
 
     @SuppressWarnings("unchecked")
-    public List<String> findAddedMessages(final DuplicateMessages duplicateMessages, final QueueBrowser queueBrowser) {
+    public List<String> findAddedMessages(final BrowsedMessages browsedMessages, final QueueBrowser queueBrowser) {
 
-        final Map<String, Message> messageCache = duplicateMessages.getMessageCache();
+        final Map<String, Message> messageCache = browsedMessages.getMessageCache();
         final List<String> addedMessageIds = new ArrayList<>();
 
         try {

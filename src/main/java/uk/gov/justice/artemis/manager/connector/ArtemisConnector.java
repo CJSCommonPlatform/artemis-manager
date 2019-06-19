@@ -14,6 +14,8 @@ public interface ArtemisConnector {
 
     List<String> removeAllDuplicates(final String destinationName);
 
+    List<String> deduplicateTopicMessages(final String destinationName);
+
     long reprocess(final String destinationName, final Iterator<String> msgIds);
 
     int reprocessAll(final String destinationName);
