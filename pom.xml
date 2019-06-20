@@ -10,6 +10,9 @@
         <version>1.7.1</version>
     </parent>
 
+    <artifactId>artemis-manager</artifactId>
+    <version>3.4.1-SNAPSHOT</version>
+
     <properties>
         <cpp.repo.name>artemis-manager</cpp.repo.name>
         <framework-tools-command.version>2.0.0</framework-tools-command.version>
@@ -18,12 +21,10 @@
         <slf4j-version>1.7.10</slf4j-version>
         <throwing-function.version>1.3</throwing-function.version>
         <jcommander.version>1.48</jcommander.version>
-        <utilities.version>1.16.2</utilities.version>
+        <utilities.version>1.19.0</utilities.version>
         <opencsv.version>4.5</opencsv.version>
+        <common-bom.version>2.2.0</common-bom.version>
     </properties>
-
-    <artifactId>artemis-manager</artifactId>
-    <version>3.4.1-SNAPSHOT</version>
 
     <scm>
         <connection>${cpp.scm.connection}</connection>
@@ -36,7 +37,7 @@
             <dependency>
                 <groupId>uk.gov.justice</groupId>
                 <artifactId>maven-common-bom</artifactId>
-                <version>1.28.0</version>
+                <version>${common-bom.version}</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>

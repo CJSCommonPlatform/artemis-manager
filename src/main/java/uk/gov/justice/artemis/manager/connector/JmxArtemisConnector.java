@@ -78,6 +78,11 @@ public class JmxArtemisConnector implements ArtemisConnector {
     }
 
     @Override
+    public List<String> deduplicateTopicMessages(final String destinationName) {
+        throw new UnsupportedOperationException("deduplicateTopicMessages is not supported by the JmxArtemisConnector");
+    }
+
+    @Override
     public long reprocess(final String destinationName, final Iterator<String> msgIds) {
         return jmxProcessor.processQueueControl(
                 this.jmxServiceUrls,

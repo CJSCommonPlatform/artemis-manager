@@ -12,16 +12,16 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.QueueBrowser;
 
-public class DuplicateMessageFinder {
+public class TopicDuplicateMessageFinder {
 
     private final JmsMessageUtil jmsMessageUtil;
 
-    public DuplicateMessageFinder(final JmsMessageUtil jmsMessageUtil) {
+    public TopicDuplicateMessageFinder(final JmsMessageUtil jmsMessageUtil) {
         this.jmsMessageUtil = jmsMessageUtil;
     }
 
     @SuppressWarnings("unchecked")
-    public BrowsedMessages findDuplicateMessages(final QueueBrowser queueBrowser) {
+    public BrowsedMessages findTopicDuplicateMessages(final QueueBrowser queueBrowser) {
 
         final Map<String, List<Message>> duplicateMessages = new HashMap<>();
         final Map<String, Message> messageCache = new HashMap<>();
@@ -34,17 +34,20 @@ public class DuplicateMessageFinder {
                 final Message message = browserEnumeration.nextElement();
                 final String jmsMessageID = jmsMessageUtil.getJmsMessageIdFrom(message);
 
-                if (messageCache.containsKey(jmsMessageID) && !duplicateMessages.containsKey(jmsMessageID)) {
+                if (messageCache.containsKey(jmsMessageID)) {
 
                     final Message originalMessage = messageCache.get(jmsMessageID);
                     final String originalConsumer = jmsMessageUtil.getConsumerFrom(originalMessage);
                     final String duplicateConsumer = jmsMessageUtil.getConsumerFrom(message);
-                    final boolean isNotDuplicateTopicMessage = duplicateConsumer.equals(originalConsumer);
+                    final boolean isDuplicateTopicMessage = !duplicateConsumer.equals(originalConsumer);
 
-                    if (isNotDuplicateTopicMessage) {
+                    if (isDuplicateTopicMessage) {
+
                         duplicateMessages
-                                .computeIfAbsent(jmsMessageID, key -> new ArrayList<>())
-                                .add(originalMessage);
+                                .computeIfAbsent(jmsMessageID, key -> createNewMessageListWith(originalMessage))
+                                .add(message);
+                    } else {
+                        messageCache.put(jmsMessageID, message);
                     }
 
                 } else {
@@ -57,5 +60,11 @@ public class DuplicateMessageFinder {
         } catch (final JMSException exception) {
             throw new CombinedManagementFunctionException("Failed to browse messages on queue.", exception);
         }
+    }
+
+    private List<Message> createNewMessageListWith(final Message originalMessage) {
+        final ArrayList<Message> messages = new ArrayList<>();
+        messages.add(originalMessage);
+        return messages;
     }
 }

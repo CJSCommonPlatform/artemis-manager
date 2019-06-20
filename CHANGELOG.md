@@ -5,10 +5,15 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 
 ## [Unreleased]
 
+## [3.5.0] - 2019-06-20
+
+### Added
+- Command _`deduplicate topic messages`_ that finds all Topic duplicate messages and removes the duplicates from the DLQ then re-sends them to the DLQ, creating new JMSMessageIds for each message
+
 ## [3.4.0] - 2019-06-04
 
 ### Added
-- Command _`remove all duplicates`_ that finds all not Topic duplicate messages and removes the duplicates from the DLQ
+- Command _`remove all duplicates`_ that finds all non Topic duplicate messages and removes the duplicates from the DLQ
 
 ## [3.3.0] - 2019-05-09
 
