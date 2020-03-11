@@ -41,6 +41,9 @@ abstract class AbstractArtemisCommand {
     @Parameter(names = "-jmsPassword", description = "JMS Password (optional)")
     String jmsPassword;
 
+    @Parameter(names = "-messageFile", description = "JMS Password (optional)")
+    String textMessageFile;
+
     @Parameter(names = "-help", help = true)
     private boolean help;
 

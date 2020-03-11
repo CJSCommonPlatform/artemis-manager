@@ -98,4 +98,15 @@ public class JmxManagement {
             return reprocessedMessageCount;
         };
     }
+
+    public JmxManagementFunction<String> sendTextMessage(final String message) {
+        return queueControl -> {
+            try {
+                return queueControl.sendTextMessage(message);
+            } catch (final Exception exception) {
+                outputPrinter.writeException(exception);
+                return format("%s: %s", exception.getClass().getSimpleName(), exception.getMessage());
+            }
+        };
+    }
 }

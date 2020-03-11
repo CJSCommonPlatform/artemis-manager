@@ -44,7 +44,7 @@ public class NamesByOriginalDestinationReportGenerator implements ReportGenerato
         return "Original Destination,Name" + lineSeparator() + csv;
     }
 
-    private class NameByOriginalDestination implements Comparable<NameByOriginalDestination> {
+    private static class NameByOriginalDestination implements Comparable<NameByOriginalDestination> {
 
         private final String originalDestination;
         private final Set<String> names = new TreeSet<>();

@@ -35,4 +35,6 @@ public interface ArtemisConnector {
                        final String jmsUrl,
                        final String jmsUsername,
                        final String jmsPassword) throws MalformedURLException;
+
+    String sendTextMessage(final String destinationName, final String message);
 }

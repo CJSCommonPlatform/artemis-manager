@@ -46,7 +46,7 @@ public class TotalsByNameReportGenerator implements ReportGenerator {
                 + "Total Messages," + messageData.size();
     }
 
-    private class TotalByName implements Comparable<TotalByName> {
+    private static class TotalByName implements Comparable<TotalByName> {
 
         private final String name;
         private Long totalMessages = 0L;

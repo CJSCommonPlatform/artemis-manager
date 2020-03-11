@@ -14,11 +14,15 @@ import static uk.gov.justice.artemis.manager.util.JmsTestUtil.openJmsConnection;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putInQueue;
 import static uk.gov.justice.artemis.manager.util.JmsTestUtil.putInQueueWithMessageId;
 
+import uk.gov.justice.artemis.manager.util.JmsTestUtil;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.List;
 
 import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonReader;
@@ -42,6 +46,7 @@ public class ArtemisManagerIT {
     private static final String COMMAND_LINE_REMOVE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar remove -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
     private static final String COMMAND_LINE_REMOVE_ALL_DUPLICATES = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar removeallduplicates -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
     private static final String COMMAND_LINE_DEDUPLICATE_TOPIC_MESSAGES = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar deduplicatetopicmessages -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
+    private static final String COMMAND_LINE_SEND_TEXT_MESSAGE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar sendmessage -messageFile src/test/resources/messages/messageForSendingToArtemis.txt -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager -jmxUsername guest -jmxPassword guest -jmsUsername guest -jmsPassword guest";
 
     @BeforeClass
     public static void beforeClass() throws JMSException {
@@ -51,6 +56,21 @@ public class ArtemisManagerIT {
     @AfterClass
     public static void afterClass() throws JMSException {
         closeJmsConnection();
+    }
+
+    @Test
+    public void shouldSendTextMessage() throws Exception {
+
+        cleanQueue(DLQ);
+
+        final Output output = execute(COMMAND_LINE_SEND_TEXT_MESSAGE);
+
+        System.out.println("out: " + output.standardOutput());
+        System.out.println("err: " + output.errorOutput());
+
+        final Output browseOutput = execute(COMMAND_LINE_BROWSE);
+        System.out.println("out: " + browseOutput.errorOutput());
+        System.out.println("err: " + browseOutput.standardOutput());
     }
 
     @Test
@@ -187,7 +207,7 @@ public class ArtemisManagerIT {
     }
 
     @Test
-    public void shouldReturnInfoIfMessageNotound() throws IOException {
+    public void shouldReturnInfoIfMessageNotFound() throws IOException {
 
         final Output output = execute(COMMAND_LINE_REMOVE + " -msgId 1234");
 

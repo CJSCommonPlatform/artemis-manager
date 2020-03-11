@@ -59,7 +59,7 @@ public class CreatedAtNameTotalReportGenerator implements ReportGenerator {
                 + "Total Messages,," + (long) messageData.size();
     }
 
-    private class TotalByName implements Comparable<TotalByName> {
+    private static class TotalByName implements Comparable<TotalByName> {
 
         private final LocalDate createdAt;
         private final String name;

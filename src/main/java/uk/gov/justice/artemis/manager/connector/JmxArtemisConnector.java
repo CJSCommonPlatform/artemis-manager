@@ -147,4 +147,21 @@ public class JmxArtemisConnector implements ArtemisConnector {
                 groupingBy(Entry::getKey,
                         summingLong(Entry::getValue)));
     }
+
+    @Override
+    public String sendTextMessage(final String destinationName, final String message) {
+
+        System.out.println(getClass().getSimpleName());
+        System.out.println(jmxEnvironment);
+
+
+        return jmxProcessor
+                .processQueueControl(
+                        jmxServiceUrls,
+                        jmxEnvironment,
+                        objectNameBuilder,
+                        destinationName,
+                        jmxManagement.sendTextMessage(message))
+                .collect(toList()).toString();
+    }
 }

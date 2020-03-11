@@ -26,6 +26,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXServiceURL;
@@ -70,12 +72,22 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
         this.jmxServiceUrls = jmxProcessor.processJmxUrls(jmxUrls);
         this.objectNameBuilder = jmxProcessor.getObjectNameBuilder(brokerName);
 
+        System.out.println("jmsUsername: " + jmsUsername);
+        System.out.println("jmsPassword: " + jmsPassword);
+        System.out.println("jmxUsername: " + jmxUsername);
+        System.out.println("jmxPassword: " + jmxPassword);
+
         if ((jmxUsername != null) && (jmxPassword != null)) {
             this.jmxEnvironment = new HashMap<>();
             this.jmxEnvironment.put(JMXConnector.CREDENTIALS, new String[]{jmxUsername, jmxPassword});
+
+            System.out.println("jmxEnvironment: " + jmxEnvironment);
         } else {
             this.jmxEnvironment = emptyMap();
+            System.out.println("empty jmxEnvironment: " + jmxEnvironment);
         }
+
+        
 
         if ((jmsUsername != null) && (jmsPassword != null)) {
             this.jmsFactory = new ActiveMQJMSConnectionFactory(jmsUrl, jmsUsername, jmsPassword);
@@ -205,5 +217,21 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
                         unchecked(DestinationControl::getMessageCount))
                 .flatMap(m -> m.entrySet().stream())
                 .collect(groupingBy(Entry::getKey, summingLong(Entry::getValue)));
+    }
+
+    @Override
+    public String sendTextMessage(final String destinationName, final String message) {
+
+        System.out.println(getClass().getSimpleName());
+        System.out.println(jmxEnvironment);
+
+        return jmxProcessor
+                .processQueueControl(
+                        jmxServiceUrls,
+                        jmxEnvironment,
+                        objectNameBuilder,
+                        destinationName,
+                        jmxManagement.sendTextMessage(message))
+                .collect(toList()).toString();
     }
 }
