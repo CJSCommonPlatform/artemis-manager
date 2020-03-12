@@ -16,7 +16,7 @@ abstract class AbstractArtemisCommand {
     public static final String DEFAULT_BROKER_NAME = "default";
     public static final String DEFAULT_JMS_URL = "tcp://localhost:61616?clientID=artemis-manager";
 
-    final OutputPrinter outputPrinter = new ConsolePrinter();
+    OutputPrinter outputPrinter = new ConsolePrinter();
 
     ArtemisConnector artemisConnector = new CombinedJmsAndJmxArtemisConnector();
 
@@ -40,6 +40,9 @@ abstract class AbstractArtemisCommand {
 
     @Parameter(names = "-jmsPassword", description = "JMS Password (optional)")
     String jmsPassword;
+
+    @Parameter(names = "-messageFile", description = "The text message file that should be sent when calling sendmessage. If not calling sendmessage this parameter is not required")
+    String textMessageFile;
 
     @Parameter(names = "-help", help = true)
     private boolean help;

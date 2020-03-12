@@ -118,6 +118,27 @@ Only messages that have the same JMSMessageId and different Consumer (_AMQ_ORIG_
 
 `java -jar artemis-manager.jar browse @artemis.config -report created-at-name-total-report`
 
+## Send a Text Message to the DLQ
+
+* Sends a text message to the DLQ. The message must be contained in a text file, the path of which must be included in the command
+
+**Note: SendMessage uses JMS to connect to the Artemis broker.**
+
+`java -jar artemis-manager.jar sendmessage -messageFile path/to/some/text/file/containing/the/message.txt @artemis.config`
+
+**Warning. In order to have the correct permissions to run this command, you will need to update your
+broker.xml file in your Artemis configuration. This will disable your security**
+
+Add these 2 lines to broker.xml directly under the
+
+        <security-settings/> 
+tag        
+
+      <security-enabled>false</security-enabled>
+      <populate-validated-user>true</populate-validated-user>
+    
+For an example, look at src/test/resources/artemis/broker.xml    
+
 ## Chaining Commands
 
 * Chaining commands

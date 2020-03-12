@@ -1,5 +1,6 @@
 package uk.gov.justice.artemis.manager;
 
+import static com.jayway.jsonassert.JsonAssert.with;
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -42,6 +43,7 @@ public class ArtemisManagerIT {
     private static final String COMMAND_LINE_REMOVE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar remove -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
     private static final String COMMAND_LINE_REMOVE_ALL_DUPLICATES = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar removeallduplicates -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
     private static final String COMMAND_LINE_DEDUPLICATE_TOPIC_MESSAGES = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar deduplicatetopicmessages -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
+    private static final String COMMAND_LINE_SEND_TEXT_MESSAGE = "env -u _JAVA_OPTIONS java -jar target/artemis-manager.jar sendmessage -messageFile src/test/resources/messages/messageForSendingToArtemis.txt -brokerName 0.0.0.0 -jmxUrl service:jmx:rmi:///jndi/rmi://localhost:3000/jmxrmi -jmsUrl tcp://localhost:61616?clientID=artemis-manager";
 
     @BeforeClass
     public static void beforeClass() throws JMSException {
@@ -51,6 +53,26 @@ public class ArtemisManagerIT {
     @AfterClass
     public static void afterClass() throws JMSException {
         closeJmsConnection();
+    }
+
+    @Test
+    public void shouldSendTextMessage() throws Exception {
+
+        cleanQueue(DLQ);
+
+        final Output output = execute(COMMAND_LINE_SEND_TEXT_MESSAGE);
+
+        assertThat(output.errorOutput(), isEmptyString());
+
+        final Output browseOutput = execute(COMMAND_LINE_BROWSE);
+
+        assertThat(browseOutput.errorOutput(), isEmptyString());
+
+        final String messageText = browseOutput.standardOutput();
+        final String messageJson = messageText.replace("[", "").replace("]", "");
+
+        with(messageJson)
+                .assertThat("$.msgContent.message", is("All your base are belong to us"));
     }
 
     @Test

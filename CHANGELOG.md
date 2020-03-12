@@ -4,6 +4,10 @@ on [Keep a CHANGELOG](http://keepachangelog.com/). This project adheres to
 [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+## [3.6.0] - 2020-03-12
+
+### Added
+- Command _`sendmessage`_ that sends the contents of a text file as a text message to the DLQ
 
 ## [3.5.0] - 2019-06-20
 
