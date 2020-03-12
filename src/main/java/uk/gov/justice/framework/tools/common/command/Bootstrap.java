@@ -7,10 +7,9 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.util.Optional;
 import java.util.Set;
 
+import com.beust.jcommander.JCommander;
 import org.reflections.Reflections;
 import org.slf4j.Logger;
-
-import com.beust.jcommander.JCommander;
 
 public class Bootstrap {
 

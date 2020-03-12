@@ -206,4 +206,17 @@ public class CombinedJmsAndJmxArtemisConnector implements ArtemisConnector {
                 .flatMap(m -> m.entrySet().stream())
                 .collect(groupingBy(Entry::getKey, summingLong(Entry::getValue)));
     }
+
+    @Override
+    public String sendTextMessage(final String destinationName, final String message) {
+
+        return jmxProcessor
+                .processQueueControl(
+                        jmxServiceUrls,
+                        jmxEnvironment,
+                        objectNameBuilder,
+                        destinationName,
+                        jmxManagement.sendTextMessage(message))
+                .collect(toList()).toString();
+    }
 }
